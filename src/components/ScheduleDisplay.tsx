@@ -95,13 +95,8 @@ const ScheduleDisplay = ({
               .flatMap((dt) => dt.infoSuffixes || [])
               .filter(Boolean)
           )].map((suffix) => {
-            const info = getTimeInfo("", { 
-              id: "", 
-              routeId: "", 
-              tags: [], 
-              departureTimes: [{ time: "", infoSuffixes: [suffix] }],
-              effectiveFrom: ""
-            }).find((i) => i.id === suffix);
+            // Fixed here: Only passing one argument to getTimeInfo
+            const info = getTimeInfo("").find((i) => i.id === suffix);
 
             return info ? (
               <div key={info.id} className="flex items-center">

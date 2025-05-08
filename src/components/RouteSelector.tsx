@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue 
 } from "@/components/ui/select";
-import { Bus, Train, Tram } from "lucide-react";
+import { Bus, Train, TrainFront } from "lucide-react";
 
 interface RouteSelectorProps {
   routes: Route[];
@@ -38,7 +38,7 @@ const RouteSelector = ({
       case "train":
         return <Train className="h-4 w-4 mr-2" />;
       case "tram":
-        return <Tram className="h-4 w-4 mr-2" />;
+        return <TrainFront className="h-4 w-4 mr-2" />; // Changed from Tram to TrainFront
       default:
         return <Bus className="h-4 w-4 mr-2" />;
     }
