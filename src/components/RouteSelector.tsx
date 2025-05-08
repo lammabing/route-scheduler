@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue 
 } from "@/components/ui/select";
-import { Bus, Train, TrainFront } from "lucide-react";
+import { Bus, Image, Route as RouteIcon, Train, TrainFront } from "lucide-react";
 
 interface RouteSelectorProps {
   routes: Route[];
@@ -61,6 +61,9 @@ const RouteSelector = ({
                 <span className="text-sm text-muted-foreground">
                   {selectedRoute.origin} → {selectedRoute.destination}
                 </span>
+                {selectedRoute.featuredImage && (
+                  <Image className="h-4 w-4 ml-2 text-muted-foreground" />
+                )}
               </div>
             )}
           </SelectValue>
@@ -78,6 +81,9 @@ const RouteSelector = ({
                 <span className="text-sm text-muted-foreground">
                   {route.origin} → {route.destination}
                 </span>
+                {route.featuredImage && (
+                  <Image className="h-4 w-4 ml-2 text-muted-foreground" />
+                )}
               </div>
             </SelectItem>
           ))}

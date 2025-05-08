@@ -1,5 +1,5 @@
 
-import { DayOfWeek, PublicHoliday, Route, Schedule, TimeInfo } from "@/types";
+import { DayOfWeek, Fare, PublicHoliday, Route, Schedule, TimeInfo } from "@/types";
 import { getDayOfWeek, isPublicHoliday } from "./dateUtils";
 
 // Find the appropriate schedule for a given route, date, and available schedules
@@ -48,15 +48,29 @@ export const getDepartureTimes = (schedule?: Schedule): string[] => {
 // Find time info for a specific time in a schedule
 export const getTimeInfo = (
   time: string,
-  schedule: Schedule | undefined,
-  timeInfos: TimeInfo[]
+  schedule?: Schedule,
+  allTimeInfos: TimeInfo[] = []
 ): TimeInfo[] => {
   if (!schedule) return [];
   
   const departureTime = schedule.departureTimes.find(dt => dt.time === time);
   if (!departureTime || !departureTime.infoSuffixes) return [];
   
-  return timeInfos.filter(info => departureTime.infoSuffixes?.includes(info.id));
+  return allTimeInfos.filter(info => departureTime.infoSuffixes?.includes(info.id));
+};
+
+// Get fares for a specific departure time
+export const getFaresForTime = (
+  time: string,
+  schedule?: Schedule,
+  allFares: Fare[] = []
+): Fare[] => {
+  if (!schedule) return [];
+  
+  const departureTime = schedule.departureTimes.find(dt => dt.time === time);
+  if (!departureTime || !departureTime.fareIds) return [];
+  
+  return allFares.filter(fare => departureTime.fareIds?.includes(fare.id));
 };
 
 // Save the most recently viewed route to local storage

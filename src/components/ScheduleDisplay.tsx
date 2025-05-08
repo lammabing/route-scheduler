@@ -1,25 +1,33 @@
 
-import { useEffect, useRef } from "react";
-import { DepartureTime, TimeInfo } from "@/types";
+import { useEffect, useRef, useState } from "react";
+import { DepartureTime, Fare, TimeInfo } from "@/types";
 import { formatTimeDisplay, isTimeInPast } from "@/utils/dateUtils";
 import NextDeparture from "./NextDeparture";
+import FareDisplay from "./FareDisplay";
+import { Button } from "./ui/button";
+import { Info } from "lucide-react";
 
 interface ScheduleDisplayProps {
   departureTimes: DepartureTime[];
   nextDepartureTime: string | null;
   getTimeInfo: (time: string) => TimeInfo[];
+  getFaresForTime: (time: string) => Fare[];
   isLoading?: boolean;
   isHoliday?: boolean;
+  allFares?: Fare[];
 }
 
 const ScheduleDisplay = ({
   departureTimes,
   nextDepartureTime,
   getTimeInfo,
+  getFaresForTime,
   isLoading = false,
   isHoliday = false,
+  allFares = [],
 }: ScheduleDisplayProps) => {
   const nextDepartureRef = useRef<HTMLDivElement>(null);
+  const [showAllFares, setShowAllFares] = useState(false);
 
   // Scroll to next departure when it changes
   useEffect(() => {
@@ -63,11 +71,32 @@ const ScheduleDisplay = ({
           {departureTimes.length} {departureTimes.length === 1 ? 'departure' : 'departures'}{' '}
           {isHoliday && <span className="text-schedule-holiday">(Holiday Schedule)</span>}
         </h3>
+
+        {allFares && allFares.length > 0 && (
+          <div className="mt-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowAllFares(!showAllFares)}
+              className="flex items-center gap-1 text-xs"
+            >
+              <Info className="h-3 w-3" />
+              {showAllFares ? "Hide Fare Information" : "Show Fare Information"}
+            </Button>
+            
+            {showAllFares && (
+              <div className="mt-2">
+                <FareDisplay fares={allFares} />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="space-y-1">
         {departureTimes.map((departureTime) => {
           const timeInfo = getTimeInfo(departureTime.time);
+          const fares = getFaresForTime(departureTime.time);
           const isNext = departureTime.time === nextDepartureTime;
 
           // If this is the next departure, assign it to the ref
@@ -78,6 +107,7 @@ const ScheduleDisplay = ({
               <NextDeparture
                 departureTime={departureTime}
                 timeInfo={timeInfo}
+                fares={fares}
                 isNext={isNext}
               />
             </div>

@@ -4,10 +4,12 @@ import { useToast } from "@/components/ui/use-toast";
 import RouteSelector from "@/components/RouteSelector";
 import DateSelector from "@/components/DateSelector";
 import ScheduleDisplay from "@/components/ScheduleDisplay";
+import RouteFeaturedImage from "@/components/RouteFeaturedImage";
 import { useSchedule } from "@/hooks/useSchedule";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 const Index = () => {
   const { toast } = useToast();
@@ -29,6 +31,8 @@ const Index = () => {
     setRouteId,
     setDate,
     getInfoForTime,
+    getFaresForTime,
+    availableFares,
     refreshData
   } = useSchedule();
   
@@ -117,13 +121,34 @@ const Index = () => {
                 )}
               </div>
             </CardHeader>
+            
+            {currentRoute.featuredImage && (
+              <div className="px-6">
+                <RouteFeaturedImage 
+                  imageUrl={currentRoute.featuredImage} 
+                  altText={`${currentRoute.name} route image`} 
+                  height="h-40"
+                />
+              </div>
+            )}
+            
             <CardContent>
+              {currentRoute.transportType && (
+                <div className="mb-4">
+                  <Badge variant="outline" className="bg-primary/10">
+                    {currentRoute.transportType.charAt(0).toUpperCase() + currentRoute.transportType.slice(1)}
+                  </Badge>
+                </div>
+              )}
+              
               <ScheduleDisplay
                 departureTimes={departureTimes}
                 nextDepartureTime={nextDepartureTime}
                 getTimeInfo={getInfoForTime}
+                getFaresForTime={getFaresForTime}
                 isLoading={isLoading}
                 isHoliday={isHoliday}
+                allFares={availableFares}
               />
             </CardContent>
           </Card>

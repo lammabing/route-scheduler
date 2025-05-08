@@ -1,8 +1,8 @@
 
 import { useEffect, useState } from "react";
-import { DepartureTime, PublicHoliday, Route, Schedule, TimeInfo } from "@/types";
+import { DepartureTime, Fare, PublicHoliday, Route, Schedule, TimeInfo } from "@/types";
 import { routes as mockRoutes, schedules as mockSchedules, timeInfos as mockTimeInfos, publicHolidays as mockPublicHolidays } from "@/data/mockData";
-import { findScheduleForDate, getTimeInfo, saveDataForOffline, getCachedRouteData, saveRecentRoute, saveViewedDate } from "@/utils/scheduleUtils";
+import { findScheduleForDate, getTimeInfo, getFaresForTime, saveDataForOffline, getCachedRouteData, saveRecentRoute, saveViewedDate } from "@/utils/scheduleUtils";
 import { getNextDepartureTime, isPublicHoliday } from "@/utils/dateUtils";
 
 interface UseScheduleProps {
@@ -26,6 +26,8 @@ interface UseScheduleReturn {
   setRouteId: (id: string) => void;
   setDate: (date: Date) => void;
   getInfoForTime: (time: string) => TimeInfo[];
+  getFaresForTime: (time: string) => Fare[];
+  availableFares: Fare[];
   refreshData: () => void;
 }
 
@@ -50,6 +52,7 @@ export const useSchedule = ({
   );
   const selectedSchedule = findScheduleForDate(routeId, date, schedules, publicHolidays);
   const departureTimes = selectedSchedule?.departureTimes || [];
+  const availableFares = selectedSchedule?.fares || [];
   
   const times = departureTimes.map(dt => dt.time);
   const nextDepartureTime = getNextDepartureTime(times);
@@ -69,6 +72,11 @@ export const useSchedule = ({
   // Function to get info for a specific time
   const getInfoForTime = (time: string): TimeInfo[] => {
     return getTimeInfo(time, selectedSchedule, timeInfos);
+  };
+
+  // Function to get fares for a specific time
+  const getFaresForDeparture = (time: string): Fare[] => {
+    return getFaresForTime(time, selectedSchedule, availableFares);
   };
   
   // Fetch data (in a real app, this would be an API call)
@@ -150,6 +158,8 @@ export const useSchedule = ({
     setRouteId: handleSetRouteId,
     setDate: handleSetDate,
     getInfoForTime,
+    getFaresForTime: getFaresForDeparture,
+    availableFares,
     refreshData: fetchData
   };
 };

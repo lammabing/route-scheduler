@@ -43,6 +43,11 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    --schedule-highlight: 201 94% 37%;
+    --schedule-past: 215 16% 47%;
+    --schedule-future: 222 47% 11%;
+    --schedule-holiday: 25 95% 53%;
   }
 
   .dark {
@@ -82,6 +87,11 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    --schedule-highlight: 201 94% 47%;
+    --schedule-past: 215 16% 65%;
+    --schedule-future: 210 40% 90%;
+    --schedule-holiday: 25 95% 53%;
   }
 }
 
@@ -96,12 +106,12 @@
 }
 
 .next-departure {
-  @apply bg-schedule-highlight text-white font-bold relative;
+  @apply bg-[hsl(var(--schedule-highlight))] text-white font-bold relative;
 }
 
 .next-departure::before {
   content: "";
-  @apply absolute -left-2 top-1/2 h-2 w-2 bg-schedule-highlight rounded-full animate-pulse-light;
+  @apply absolute -left-2 top-1/2 h-2 w-2 bg-[hsl(var(--schedule-highlight))] rounded-full animate-pulse-light;
   transform: translateY(-50%);
 }
 
@@ -114,13 +124,26 @@
 }
 
 .past-time {
-  @apply text-schedule-past opacity-70;
+  @apply text-[hsl(var(--schedule-past))] opacity-70;
 }
 
 .future-time {
-  @apply text-schedule-future;
+  @apply text-[hsl(var(--schedule-future))];
 }
 
 .holiday-schedule {
-  @apply border-l-4 border-schedule-holiday;
+  @apply border-l-4 border-[hsl(var(--schedule-holiday))];
+}
+
+@keyframes pulse-light {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-light {
+  animation: pulse-light 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
