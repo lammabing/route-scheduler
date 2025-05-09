@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 import type {
@@ -52,6 +53,15 @@ type Action =
 interface State {
   toasts: ToasterToast[]
 }
+
+// Create a context to hold the toast state
+type ToastContextType = {
+  toasts: ToasterToast[]
+  toast: (props: Toast) => { id: string; dismiss: () => void; update: (props: ToasterToast) => void }
+  dismiss: (toastId?: string) => void
+} | null
+
+const ToastContext = React.createContext<ToastContextType>(null)
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
@@ -168,7 +178,7 @@ function toast({ ...props }: Toast) {
   }
 }
 
-function useToast() {
+export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
   const [state, setState] = React.useState<State>(memoryState)
 
   React.useEffect(() => {
@@ -181,11 +191,29 @@ function useToast() {
     }
   }, [state])
 
-  return {
-    ...state,
-    toast,
-    dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
-  }
+  const contextValue = React.useMemo(() => {
+    return {
+      toasts: state.toasts,
+      toast,
+      dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId })
+    }
+  }, [state.toasts])
+
+  return (
+    <ToastContext.Provider value={contextValue}>
+      {children}
+    </ToastContext.Provider>
+  )
 }
 
-export { useToast, toast }
+export function useToast() {
+  const context = React.useContext(ToastContext)
+  
+  if (context === null) {
+    throw new Error("useToast must be used within a ToastProvider")
+  }
+  
+  return context
+}
+
+export { toast }
