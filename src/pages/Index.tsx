@@ -1,6 +1,6 @@
 
 import { useEffect } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useSchedule } from "@/hooks/useSchedule";
 import Header from "@/components/Header";
 import RouteSelectionCard from "@/components/RouteSelectionCard";
@@ -43,10 +43,10 @@ const Index = () => {
   }, [error, toast]);
   
   return (
-    <div className="container mx-auto px-4 py-8 max-w-3xl">
+    <div className="container mx-auto px-4 py-8 max-w-3xl min-h-screen">
       <Header />
       
-      <div className="grid gap-4">
+      <div className="grid gap-6">
         <RouteSelectionCard 
           routes={routes}
           currentRoute={currentRoute}
