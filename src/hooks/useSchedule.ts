@@ -1,9 +1,11 @@
 
 import { useEffect, useState } from "react";
 import { DepartureTime, Fare, PublicHoliday, Route, Schedule, TimeInfo } from "@/types";
-import { routes as mockRoutes, schedules as mockSchedules, timeInfos as mockTimeInfos, publicHolidays as mockPublicHolidays } from "@/data/mockData";
 import { findScheduleForDate, getTimeInfo, getFaresForTime, saveDataForOffline, getCachedRouteData, saveRecentRoute, saveViewedDate } from "@/utils/scheduleUtils";
 import { getNextDepartureTime, isPublicHoliday } from "@/utils/dateUtils";
+import { routes as mockRoutes, schedules as mockSchedules, timeInfos as mockTimeInfos, publicHolidays as mockPublicHolidays } from "@/data/mockData";
+import { fetchRoutes, fetchSchedules, fetchTimeInfos, fetchPublicHolidays, initializeDatabaseData } from "@/services/supabaseService";
+import { useToast } from "@/hooks/use-toast";
 
 interface UseScheduleProps {
   initialRouteId?: string;
@@ -35,6 +37,7 @@ export const useSchedule = ({
   initialRouteId,
   initialDate = new Date()
 }: UseScheduleProps = {}): UseScheduleReturn => {
+  const { toast } = useToast();
   const [routeId, setRouteId] = useState<string>(initialRouteId || "");
   const [date, setDate] = useState<Date>(initialDate);
   const [routes, setRoutes] = useState<Route[]>([]);
@@ -43,6 +46,7 @@ export const useSchedule = ({
   const [publicHolidays, setPublicHolidays] = useState<PublicHoliday[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState<boolean>(false);
   
   // Derived state
   const currentRoute = routes.find(route => route.id === routeId);
@@ -79,33 +83,78 @@ export const useSchedule = ({
     return getFaresForTime(time, selectedSchedule, availableFares);
   };
   
-  // Fetch data (in a real app, this would be an API call)
+  // Initialize the database with seed data
+  const initializeDatabase = async () => {
+    if (isInitializing) return;
+    
+    setIsInitializing(true);
+    try {
+      await initializeDatabaseData(
+        mockRoutes, 
+        mockSchedules, 
+        mockTimeInfos, 
+        mockPublicHolidays
+      );
+      
+      toast({
+        title: "Database Initialized",
+        description: "Sample data has been loaded into the database.",
+      });
+      
+      // After initialization, fetch the data
+      await fetchData();
+    } catch (error) {
+      console.error("Error initializing database:", error);
+      setError("Failed to initialize database. Please try again.");
+      toast({
+        title: "Initialization Error",
+        description: "Failed to initialize the database with sample data.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsInitializing(false);
+    }
+  };
+  
+  // Fetch data from Supabase
   const fetchData = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      // In a real app, these would be API calls
-      // For now, we'll use the mock data with a slight delay
-      setTimeout(() => {
-        setRoutes(mockRoutes);
-        setSchedules(mockSchedules);
-        setTimeInfos(mockTimeInfos);
-        setPublicHolidays(mockPublicHolidays);
-        
-        // Set default route if not already set
-        if (!routeId && mockRoutes.length > 0) {
-          setRouteId(mockRoutes[0].id);
-        }
-        
-        // Save data for offline use
-        saveDataForOffline(mockRoutes, mockSchedules, mockTimeInfos, mockPublicHolidays);
-        
-        setIsLoading(false);
-      }, 300);
+      // Fetch all data from Supabase
+      const [fetchedRoutes, fetchedSchedules, fetchedTimeInfos, fetchedHolidays] = await Promise.all([
+        fetchRoutes(),
+        fetchSchedules(),
+        fetchTimeInfos(),
+        fetchPublicHolidays()
+      ]);
+      
+      setRoutes(fetchedRoutes);
+      setSchedules(fetchedSchedules);
+      setTimeInfos(fetchedTimeInfos);
+      setPublicHolidays(fetchedHolidays);
+      
+      // If no routes are fetched, it means we need to initialize the database
+      if (fetchedRoutes.length === 0) {
+        await initializeDatabase();
+        return;
+      }
+      
+      // Set default route if not already set
+      if (!routeId && fetchedRoutes.length > 0) {
+        setRouteId(fetchedRoutes[0].id);
+      }
+      
+      // Save data for offline use
+      saveDataForOffline(fetchedRoutes, fetchedSchedules, fetchedTimeInfos, fetchedHolidays);
+      
+      toast({
+        title: "Data Refreshed",
+        description: "Schedule data has been updated.",
+      });
     } catch (err) {
       console.error("Error fetching schedule data:", err);
       setError("Failed to load schedule data. Please try again.");
-      setIsLoading(false);
       
       // Try to load from cache in case of error
       const cachedData = getCachedRouteData();
@@ -114,7 +163,15 @@ export const useSchedule = ({
         setSchedules(cachedData.schedules);
         setTimeInfos(cachedData.timeInfos);
         setPublicHolidays(cachedData.publicHolidays);
+        
+        toast({
+          title: "Using Cached Data",
+          description: "Loaded data from local cache due to connection issues.",
+          variant: "warning",
+        });
       }
+    } finally {
+      setIsLoading(false);
     }
   };
   
