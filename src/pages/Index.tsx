@@ -1,6 +1,6 @@
 
 import { useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useSchedule } from "@/hooks/useSchedule";
 import Header from "@/components/Header";
 import RouteSelectionCard from "@/components/RouteSelectionCard";
@@ -8,8 +8,6 @@ import RouteDetailsCard from "@/components/RouteDetailsCard";
 import Footer from "@/components/Footer";
 
 const Index = () => {
-  const { toast } = useToast();
-  
   const {
     routes,
     currentRoute,
@@ -34,13 +32,11 @@ const Index = () => {
   // Error handling
   useEffect(() => {
     if (error) {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: error,
-        variant: "destructive",
       });
     }
-  }, [error, toast]);
+  }, [error]);
   
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl min-h-screen">

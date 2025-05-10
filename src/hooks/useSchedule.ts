@@ -1,9 +1,133 @@
 
 import { useEffect, useState } from "react";
 import { DepartureTime, Fare, PublicHoliday, Route, Schedule, TimeInfo } from "@/types";
-import { routes as mockRoutes, schedules as mockSchedules, timeInfos as mockTimeInfos, publicHolidays as mockPublicHolidays } from "@/data/mockData";
 import { findScheduleForDate, getTimeInfo, getFaresForTime, saveDataForOffline, getCachedRouteData, saveRecentRoute, saveViewedDate } from "@/utils/scheduleUtils";
 import { getNextDepartureTime, isPublicHoliday } from "@/utils/dateUtils";
+import { supabase } from "@/lib/supabase";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+
+// Data fetching functions for React Query
+const fetchRoutes = async (): Promise<Route[]> => {
+  const { data, error } = await supabase
+    .from('routes')
+    .select('*');
+    
+  if (error) throw new Error(error.message);
+  
+  return data.map(route => ({
+    id: route.id,
+    name: route.name,
+    origin: route.origin,
+    destination: route.destination,
+    description: route.description || undefined,
+    transportType: route.transport_type,
+    color: undefined,
+    additionalInfo: undefined,
+    featuredImage: route.featured_image || undefined
+  }));
+};
+
+const fetchSchedules = async (): Promise<Schedule[]> => {
+  // First get all schedules
+  const { data: schedulesData, error: schedulesError } = await supabase
+    .from('schedules')
+    .select('*');
+    
+  if (schedulesError) throw new Error(schedulesError.message);
+  
+  const schedules: Schedule[] = [];
+  
+  // For each schedule, get its departure times and fares
+  for (const schedule of schedulesData) {
+    // Get departure times for this schedule
+    const { data: departureTimes, error: departureTimesError } = await supabase
+      .from('departure_times')
+      .select('*, departure_time_infos(time_info_id), departure_time_fares(fare_id)')
+      .eq('schedule_id', schedule.id);
+      
+    if (departureTimesError) throw new Error(departureTimesError.message);
+    
+    // Get fares for this schedule
+    const { data: fares, error: faresError } = await supabase
+      .from('fares')
+      .select('*')
+      .eq('schedule_id', schedule.id);
+      
+    if (faresError) throw new Error(faresError.message);
+    
+    // Convert schedule to our app format
+    const formattedSchedule: Schedule = {
+      id: schedule.id,
+      routeId: schedule.route_id,
+      tags: getScheduleTags(schedule),
+      effectiveFrom: schedule.effective_from || '',
+      effectiveUntil: schedule.effective_until,
+      departureTimes: departureTimes.map(dt => ({
+        time: dt.time,
+        infoSuffixes: dt.departure_time_infos?.map(info => info.time_info_id) || [],
+        fareIds: dt.departure_time_fares?.map(fare => fare.fare_id) || []
+      })),
+      fares: fares.map(fare => ({
+        id: fare.id,
+        name: fare.name,
+        price: fare.price,
+        currency: fare.currency,
+        description: fare.description,
+        fareType: fare.fare_type
+      }))
+    };
+    
+    schedules.push(formattedSchedule);
+  }
+  
+  return schedules;
+};
+
+// Helper to determine schedule tags based on schedule properties
+const getScheduleTags = (schedule: any): string[] => {
+  const tags: string[] = [];
+  
+  // Check if it's a weekend or holiday schedule
+  if (schedule.is_weekend_schedule) {
+    tags.push('sat', 'sun');
+  } else if (schedule.is_holiday_schedule) {
+    tags.push('holiday');
+  } else {
+    // Weekday schedule
+    tags.push('mon', 'tue', 'wed', 'thu', 'fri');
+  }
+  
+  return tags;
+};
+
+const fetchTimeInfos = async (): Promise<TimeInfo[]> => {
+  const { data, error } = await supabase
+    .from('time_infos')
+    .select('*');
+    
+  if (error) throw new Error(error.message);
+  
+  return data.map(info => ({
+    id: info.id,
+    symbol: info.symbol,
+    description: info.description
+  }));
+};
+
+const fetchPublicHolidays = async (): Promise<PublicHoliday[]> => {
+  const { data, error } = await supabase
+    .from('public_holidays')
+    .select('*');
+    
+  if (error) throw new Error(error.message);
+  
+  return data.map(holiday => ({
+    date: holiday.date,
+    title: holiday.name,
+    description: holiday.description
+  }));
+};
 
 interface UseScheduleProps {
   initialRouteId?: string;
@@ -35,14 +159,75 @@ export const useSchedule = ({
   initialRouteId,
   initialDate = new Date()
 }: UseScheduleProps = {}): UseScheduleReturn => {
-  const [routeId, setRouteId] = useState<string>(initialRouteId || "");
+  // Get cached data to start with
+  const cachedData = getCachedRouteData();
+  const cachedRouteId = localStorage.getItem("recentRouteId") || undefined;
+  
+  // Initial state setup
+  const [routeId, setRouteId] = useState<string>(initialRouteId || cachedRouteId || "");
   const [date, setDate] = useState<Date>(initialDate);
-  const [routes, setRoutes] = useState<Route[]>([]);
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [timeInfos, setTimeInfos] = useState<TimeInfo[]>([]);
-  const [publicHolidays, setPublicHolidays] = useState<PublicHoliday[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  
+  // React Query hooks
+  const { 
+    data: routes = [], 
+    isLoading: isRoutesLoading,
+    error: routesError,
+    refetch: refetchRoutes
+  } = useQuery({
+    queryKey: ['routes'],
+    queryFn: fetchRoutes,
+    initialData: cachedData.isAvailable ? cachedData.routes : undefined,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  
+  const { 
+    data: schedules = [], 
+    isLoading: isSchedulesLoading,
+    error: schedulesError,
+    refetch: refetchSchedules
+  } = useQuery({
+    queryKey: ['schedules'],
+    queryFn: fetchSchedules,
+    initialData: cachedData.isAvailable ? cachedData.schedules : undefined,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  
+  const { 
+    data: timeInfos = [], 
+    isLoading: isTimeInfosLoading,
+    error: timeInfosError,
+    refetch: refetchTimeInfos
+  } = useQuery({
+    queryKey: ['timeInfos'],
+    queryFn: fetchTimeInfos,
+    initialData: cachedData.isAvailable ? cachedData.timeInfos : undefined,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  
+  const { 
+    data: publicHolidays = [], 
+    isLoading: isHolidaysLoading,
+    error: holidaysError,
+    refetch: refetchHolidays
+  } = useQuery({
+    queryKey: ['publicHolidays'],
+    queryFn: fetchPublicHolidays,
+    initialData: cachedData.isAvailable ? cachedData.publicHolidays : undefined,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  
+  // Handle error states
+  const error = routesError?.message || schedulesError?.message || timeInfosError?.message || holidaysError?.message || null;
+  
+  // Determine if any data is still loading
+  const isLoading = isRoutesLoading || isSchedulesLoading || isTimeInfosLoading || isHolidaysLoading;
+  
+  // Set default route if not already set
+  useEffect(() => {
+    if (!routeId && routes.length > 0) {
+      setRouteId(routes[0].id);
+    }
+  }, [routes, routeId]);
   
   // Derived state
   const currentRoute = routes.find(route => route.id === routeId);
@@ -56,6 +241,13 @@ export const useSchedule = ({
   
   const times = departureTimes.map(dt => dt.time);
   const nextDepartureTime = getNextDepartureTime(times);
+  
+  // Save data for offline use whenever it changes
+  useEffect(() => {
+    if (!isLoading && !error) {
+      saveDataForOffline(routes, schedules, timeInfos, publicHolidays);
+    }
+  }, [routes, schedules, timeInfos, publicHolidays, isLoading, error]);
   
   // Handler for selecting a route
   const handleSetRouteId = (id: string) => {
@@ -79,68 +271,21 @@ export const useSchedule = ({
     return getFaresForTime(time, selectedSchedule, availableFares);
   };
   
-  // Fetch data (in a real app, this would be an API call)
-  const fetchData = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      // In a real app, these would be API calls
-      // For now, we'll use the mock data with a slight delay
-      setTimeout(() => {
-        setRoutes(mockRoutes);
-        setSchedules(mockSchedules);
-        setTimeInfos(mockTimeInfos);
-        setPublicHolidays(mockPublicHolidays);
-        
-        // Set default route if not already set
-        if (!routeId && mockRoutes.length > 0) {
-          setRouteId(mockRoutes[0].id);
-        }
-        
-        // Save data for offline use
-        saveDataForOffline(mockRoutes, mockSchedules, mockTimeInfos, mockPublicHolidays);
-        
-        setIsLoading(false);
-      }, 300);
-    } catch (err) {
-      console.error("Error fetching schedule data:", err);
-      setError("Failed to load schedule data. Please try again.");
-      setIsLoading(false);
-      
-      // Try to load from cache in case of error
-      const cachedData = getCachedRouteData();
-      if (cachedData.isAvailable) {
-        setRoutes(cachedData.routes);
-        setSchedules(cachedData.schedules);
-        setTimeInfos(cachedData.timeInfos);
-        setPublicHolidays(cachedData.publicHolidays);
-      }
-    }
+  // Function to refresh all data
+  const refreshData = () => {
+    toast.info("Refreshing schedule data...");
+    
+    Promise.all([
+      refetchRoutes(),
+      refetchSchedules(),
+      refetchTimeInfos(),
+      refetchHolidays(),
+    ]).then(() => {
+      toast.success("Schedule data refreshed!");
+    }).catch((err) => {
+      toast.error("Failed to refresh data: " + (err.message || "Unknown error"));
+    });
   };
-  
-  // Initialize data on mount
-  useEffect(() => {
-    const cachedData = getCachedRouteData();
-    
-    if (cachedData.isAvailable) {
-      // Use cached data initially for fast loading
-      setRoutes(cachedData.routes);
-      setSchedules(cachedData.schedules);
-      setTimeInfos(cachedData.timeInfos);
-      setPublicHolidays(cachedData.publicHolidays);
-      setIsLoading(false);
-      
-      // If no route id is set, try to get from localStorage
-      if (!routeId) {
-        const recentRoute = localStorage.getItem("recentRouteId");
-        if (recentRoute) setRouteId(recentRoute);
-        else if (cachedData.routes.length > 0) setRouteId(cachedData.routes[0].id);
-      }
-    }
-    
-    // Then fetch fresh data
-    fetchData();
-  }, []);
   
   return {
     routes,
@@ -160,6 +305,6 @@ export const useSchedule = ({
     getInfoForTime,
     getFaresForTime: getFaresForDeparture,
     availableFares,
-    refreshData: fetchData
+    refreshData
   };
 };
