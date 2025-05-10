@@ -1,18 +1,13 @@
 
-import { createClient } from '@supabase/supabase-js';
-import { Database } from '../types/supabase';
+// Import the centralized Supabase client
+import { supabase } from '../integrations/supabase/client';
 
-// Get environment variables with fallbacks for development
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project-url.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
+// Re-export the supabase client
+export { supabase };
 
-// Create the Supabase client
-export const supabase = createClient<Database>(
-  supabaseUrl,
-  supabaseAnonKey
-);
-
-// Function to check if we're using real credentials or fallbacks
+// Function to check if we're using real credentials
 export const isUsingRealCredentials = () => {
-  return import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
+  // Since we're using the centralized client which has hardcoded credentials,
+  // we're always using real credentials
+  return true;
 };
