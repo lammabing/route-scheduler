@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { DepartureTime, Fare, PublicHoliday, Route, Schedule, TimeInfo } from "@/types";
+import { DayOfWeek, DepartureTime, Fare, PublicHoliday, Route, Schedule, TimeInfo } from "@/types";
 import { findScheduleForDate, getTimeInfo, getFaresForTime, saveDataForOffline, getCachedRouteData, saveRecentRoute, saveViewedDate } from "@/utils/scheduleUtils";
 import { getNextDepartureTime, isPublicHoliday } from "@/utils/dateUtils";
 import { supabase } from "@/lib/supabase";
@@ -85,8 +85,8 @@ const fetchSchedules = async (): Promise<Schedule[]> => {
 };
 
 // Helper to determine schedule tags based on schedule properties
-const getScheduleTags = (schedule: any): string[] => {
-  const tags: string[] = [];
+const getScheduleTags = (schedule: any): DayOfWeek[] => {
+  const tags: DayOfWeek[] = [];
   
   // Check if it's a weekend or holiday schedule
   if (schedule.is_weekend_schedule) {

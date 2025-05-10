@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import RouteSelectionCard from "@/components/RouteSelectionCard";
 import RouteDetailsCard from "@/components/RouteDetailsCard";
 import Footer from "@/components/Footer";
+import AdminSeeder from "@/components/AdminSeeder";
 
 const Index = () => {
   const {
@@ -67,9 +68,21 @@ const Index = () => {
             availableFares={availableFares}
           />
         )}
+        
+        {routes.length === 0 && !isLoading && (
+          <div className="p-8 text-center border rounded-lg bg-amber-50 border-amber-200">
+            <h2 className="text-xl font-semibold text-amber-800 mb-2">No Routes Found</h2>
+            <p className="text-amber-700 mb-4">
+              Your database appears to be empty. Use the "Seed Database" button to populate it with sample data.
+            </p>
+          </div>
+        )}
       </div>
       
       <Footer refreshData={refreshData} />
+      
+      {/* Add the database seeder button */}
+      <AdminSeeder />
     </div>
   );
 };
