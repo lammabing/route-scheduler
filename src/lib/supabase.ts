@@ -1,13 +1,15 @@
 
-// Import the centralized Supabase client
-import { supabase } from '../integrations/supabase/client';
+import { createClient } from '@supabase/supabase-js';
+import { Database } from '../types/supabase';
 
-// Re-export the supabase client
-export { supabase };
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Function to check if we're using real credentials
-export const isUsingRealCredentials = () => {
-  // Since we're using the centralized client which has hardcoded credentials,
-  // we're always using real credentials
-  return true;
-};
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables');
+}
+
+export const supabase = createClient<Database>(
+  supabaseUrl,
+  supabaseAnonKey
+);
