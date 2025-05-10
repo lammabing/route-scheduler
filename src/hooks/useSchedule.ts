@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { DepartureTime, Fare, PublicHoliday, Route, Schedule, TimeInfo } from "@/types";
 import { findScheduleForDate, getTimeInfo, getFaresForTime, saveDataForOffline, getCachedRouteData, saveRecentRoute, saveViewedDate } from "@/utils/scheduleUtils";
@@ -6,6 +5,7 @@ import { getNextDepartureTime, isPublicHoliday } from "@/utils/dateUtils";
 import { routes as mockRoutes, schedules as mockSchedules, timeInfos as mockTimeInfos, publicHolidays as mockPublicHolidays } from "@/data/mockData";
 import { fetchRoutes, fetchSchedules, fetchTimeInfos, fetchPublicHolidays, initializeDatabaseData } from "@/services/supabaseService";
 import { useToast } from "@/hooks/use-toast";
+import { isUsingRealCredentials } from "@/lib/supabase";
 
 interface UseScheduleProps {
   initialRouteId?: string;
@@ -167,7 +167,6 @@ export const useSchedule = ({
         toast({
           title: "Using Cached Data",
           description: "Loaded data from local cache due to connection issues.",
-          variant: "warning",
         });
       }
     } finally {
