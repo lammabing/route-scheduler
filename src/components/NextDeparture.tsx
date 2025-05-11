@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { DepartureTime, Fare, TimeInfo } from "@/types";
 import { formatTimeDisplay } from "@/utils/dateUtils";

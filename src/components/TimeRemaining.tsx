@@ -6,12 +6,14 @@ interface TimeRemainingProps {
   time: string;
   currentTime?: Date;
   updateInterval?: number; // in milliseconds
+  className?: string; // Add className prop for custom styling
 }
 
 const TimeRemaining = ({
   time,
   currentTime: initialTime = new Date(),
-  updateInterval = 30000 // Default update every 30 seconds
+  updateInterval = 30000, // Default update every 30 seconds
+  className = ""
 }: TimeRemainingProps) => {
   const [currentTime, setCurrentTime] = useState<Date>(initialTime);
   const [minutesRemaining, setMinutesRemaining] = useState<number>(
@@ -34,13 +36,13 @@ const TimeRemaining = ({
   
   // Determine color based on time remaining
   const getColorClass = () => {
-    if (minutesRemaining <= 5) return "text-schedule-highlight font-bold";
-    if (minutesRemaining <= 15) return "text-transport-yellow font-bold";
-    return "text-transport-blue font-bold";
+    if (minutesRemaining <= 5) return "text-white font-bold";
+    if (minutesRemaining <= 15) return "text-white font-bold";
+    return "text-white font-bold";
   };
 
   return (
-    <span className={getColorClass()}>
+    <span className={`${getColorClass()} ${className}`}>
       {formattedTime}
     </span>
   );
