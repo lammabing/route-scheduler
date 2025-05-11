@@ -1,10 +1,31 @@
 
 import React from "react";
-import { Route, DepartureTime, Fare, TimeInfo } from "@/types";
+import { Route, DepartureTime, Fare, TimeInfo, Announcement, SpecialInfo } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import RouteFeaturedImage from "./RouteFeaturedImage";
 import ScheduleDisplay from "./ScheduleDisplay";
 import { Badge } from "./ui/badge";
+
+// Sample data for demonstration
+const sampleAnnouncements: Announcement[] = [
+  {
+    id: "ann1",
+    title: "Track Maintenance",
+    content: "Expect minor delays of 5-10 minutes due to scheduled track maintenance.",
+    urgency: "info",
+    effectiveFrom: "May 15, 2026",
+    effectiveUntil: "May 20, 2026"
+  }
+];
+
+const sampleSpecialInfo: SpecialInfo[] = [
+  {
+    id: "info1",
+    title: "Bicycle Policy",
+    content: "Bicycles are welcome on this route during non-peak hours. Please use designated areas.",
+    icon: "bike"
+  }
+];
 
 interface RouteDetailsCardProps {
   route: Route;
@@ -72,6 +93,8 @@ const RouteDetailsCard = ({
           isLoading={isLoading}
           isHoliday={isHoliday}
           allFares={availableFares}
+          announcements={sampleAnnouncements}
+          specialInfo={sampleSpecialInfo}
         />
       </CardContent>
     </Card>

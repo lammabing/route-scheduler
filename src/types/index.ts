@@ -56,3 +56,23 @@ export interface PublicHoliday {
   title: string;
   description?: string;
 }
+
+// Announcement data
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  routeId?: string;
+  effectiveFrom?: string;
+  effectiveUntil?: string;
+  urgency: 'info' | 'important' | 'urgent';
+}
+
+// Special information data
+export interface SpecialInfo {
+  id: string;
+  title: string;
+  content: string;
+  routeId?: string;
+  icon?: string;
+}

@@ -1,11 +1,12 @@
-
 import { useEffect, useRef, useState } from "react";
-import { DepartureTime, Fare, TimeInfo } from "@/types";
+import { DepartureTime, Fare, TimeInfo, Announcement, SpecialInfo } from "@/types";
 import { formatTimeDisplay, isTimeInPast } from "@/utils/dateUtils";
 import NextDeparture from "./NextDeparture";
 import FareDisplay from "./FareDisplay";
 import { Button } from "./ui/button";
-import { Info } from "lucide-react";
+import { Info, Bell } from "lucide-react";
+import SpecialInfoDisplay from "./SpecialInfoDisplay";
+import AnnouncementDisplay from "./AnnouncementDisplay";
 
 interface ScheduleDisplayProps {
   departureTimes: DepartureTime[];
@@ -15,6 +16,8 @@ interface ScheduleDisplayProps {
   isLoading?: boolean;
   isHoliday?: boolean;
   allFares?: Fare[];
+  announcements?: Announcement[];
+  specialInfo?: SpecialInfo[];
 }
 
 const ScheduleDisplay = ({
@@ -25,9 +28,13 @@ const ScheduleDisplay = ({
   isLoading = false,
   isHoliday = false,
   allFares = [],
+  announcements = [],
+  specialInfo = [],
 }: ScheduleDisplayProps) => {
   const nextDepartureRef = useRef<HTMLDivElement>(null);
   const [showAllFares, setShowAllFares] = useState(false);
+  const [showAnnouncements, setShowAnnouncements] = useState(false);
+  const [showSpecialInfo, setShowSpecialInfo] = useState(false);
 
   // Scroll to next departure when it changes
   useEffect(() => {
@@ -72,8 +79,8 @@ const ScheduleDisplay = ({
           {isHoliday && <span className="text-schedule-holiday">(Holiday Schedule)</span>}
         </h3>
 
-        {allFares && allFares.length > 0 && (
-          <div className="mt-2">
+        <div className="mt-2 flex flex-wrap gap-2">
+          {allFares && allFares.length > 0 && (
             <Button 
               variant="outline" 
               size="sm" 
@@ -83,12 +90,58 @@ const ScheduleDisplay = ({
               <Info className="h-3 w-3" />
               {showAllFares ? "Hide Fare Information" : "Show Fare Information"}
             </Button>
-            
-            {showAllFares && (
-              <div className="mt-2">
-                <FareDisplay fares={allFares} />
-              </div>
-            )}
+          )}
+          
+          {announcements && announcements.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowAnnouncements(!showAnnouncements)}
+              className={`flex items-center gap-1 text-xs ${
+                announcements.some(a => a.urgency === 'urgent') 
+                  ? 'border-red-300 bg-red-50 hover:bg-red-100 text-red-800' 
+                  : ''
+              }`}
+            >
+              <Bell className="h-3 w-3" />
+              {showAnnouncements ? "Hide Announcements" : "Service Announcements"}
+              {announcements.some(a => a.urgency === 'urgent') && (
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+              )}
+            </Button>
+          )}
+          
+          {specialInfo && specialInfo.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowSpecialInfo(!showSpecialInfo)}
+              className="flex items-center gap-1 text-xs"
+            >
+              <Info className="h-3 w-3" />
+              {showSpecialInfo ? "Hide Route Information" : "Route Information"}
+            </Button>
+          )}
+        </div>
+        
+        {showAllFares && allFares && allFares.length > 0 && (
+          <div className="mt-2">
+            <FareDisplay fares={allFares} />
+          </div>
+        )}
+        
+        {showAnnouncements && announcements && announcements.length > 0 && (
+          <div className="mt-2">
+            <AnnouncementDisplay announcements={announcements} />
+          </div>
+        )}
+        
+        {showSpecialInfo && specialInfo && specialInfo.length > 0 && (
+          <div className="mt-2">
+            <SpecialInfoDisplay specialInfo={specialInfo} />
           </div>
         )}
       </div>
@@ -125,7 +178,6 @@ const ScheduleDisplay = ({
               .flatMap((dt) => dt.infoSuffixes || [])
               .filter(Boolean)
           )].map((suffix) => {
-            // Fixed here: Only passing one argument to getTimeInfo
             const info = getTimeInfo("").find((i) => i.id === suffix);
 
             return info ? (
