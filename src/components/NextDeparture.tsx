@@ -52,7 +52,6 @@ const NextDeparture = ({
               time={departureTime.time} 
               currentTime={currentTime}
               updateInterval={10000} 
-              showHoursAndMinutes={true}
             />
           )}
           
