@@ -2,12 +2,15 @@
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface FooterProps {
   refreshData: () => void;
 }
 
 const Footer = ({ refreshData }: FooterProps) => {
+  const { user, isAdmin } = useAuth();
+  
   return (
     <footer className="mt-20 py-6 border-t">
       <div className="flex flex-col md:flex-row justify-between items-center">
@@ -26,9 +29,19 @@ const Footer = ({ refreshData }: FooterProps) => {
             <RefreshCw className="h-4 w-4" />
             Refresh Data
           </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/admin">Admin Dashboard</Link>
-          </Button>
+          {isAdmin ? (
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin">Admin Dashboard</Link>
+            </Button>
+          ) : user ? (
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/login">Admin Access</Link>
+            </Button>
+          ) : (
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/login">Admin Login</Link>
+            </Button>
+          )}
         </div>
       </div>
     </footer>
