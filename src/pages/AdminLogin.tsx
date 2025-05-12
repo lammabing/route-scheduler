@@ -5,13 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { Shield, ArrowRight } from "lucide-react";
+import { Shield, ArrowRight, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
+import { createAdminUser } from "@/utils/createAdminUser";
+import { toast } from "sonner";
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
   const { signIn, user, isAdmin } = useAuth();
   const navigate = useNavigate();
 
@@ -32,6 +35,27 @@ const AdminLogin = () => {
       console.error("Login error:", error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCreateAdmin = async () => {
+    if (!email || !password) {
+      toast.error("Please enter email and password");
+      return;
+    }
+
+    setIsCreatingAdmin(true);
+    try {
+      const result = await createAdminUser(email, password);
+      toast.success(`Admin user created: ${result.email}`);
+      // Clear the form
+      setEmail("");
+      setPassword("");
+    } catch (error) {
+      console.error("Error creating admin user:", error);
+      toast.error("Failed to create admin user");
+    } finally {
+      setIsCreatingAdmin(false);
     }
   };
 
@@ -75,13 +99,35 @@ const AdminLogin = () => {
             </div>
           </div>
 
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Signing in..." : "Sign in"}
-          </Button>
+          <div className="flex flex-col space-y-2">
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Signing in..." : "Sign in"}
+            </Button>
+            
+            <div className="relative my-2">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-gray-200"></span>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-muted-foreground">Or</span>
+              </div>
+            </div>
+            
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={handleCreateAdmin}
+              disabled={isCreatingAdmin}
+            >
+              <UserPlus className="mr-2" />
+              {isCreatingAdmin ? "Creating Admin..." : "Create Admin User"}
+            </Button>
+          </div>
         </form>
 
         <div className="mt-6 text-center text-sm">
