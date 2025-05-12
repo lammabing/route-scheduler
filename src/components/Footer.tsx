@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Refresh } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface FooterProps {
@@ -23,7 +23,7 @@ const Footer = ({ refreshData }: FooterProps) => {
             onClick={refreshData}
             className="flex items-center gap-2"
           >
-            <Refresh className="h-4 w-4" />
+            <RefreshCw className="h-4 w-4" />
             Refresh Data
           </Button>
           <Button asChild variant="outline" size="sm">

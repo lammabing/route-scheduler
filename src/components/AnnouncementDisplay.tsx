@@ -13,15 +13,14 @@ const AnnouncementDisplay = ({ announcements }: AnnouncementDisplayProps) => {
     return urgencyOrder[a.urgency] - urgencyOrder[b.urgency];
   });
 
-  const getAnnouncementVariant = (urgency: Announcement['urgency']) => {
+  const getAnnouncementVariant = (urgency: Announcement['urgency']): "destructive" | "default" => {
     switch (urgency) {
       case 'urgent':
         return 'destructive';
       case 'important':
-        return 'default';
       case 'info':
       default:
-        return 'outline';
+        return 'default';
     }
   };
 
@@ -31,6 +30,7 @@ const AnnouncementDisplay = ({ announcements }: AnnouncementDisplayProps) => {
         <Alert
           key={announcement.id}
           variant={getAnnouncementVariant(announcement.urgency)}
+          className={announcement.urgency === 'info' ? 'border border-muted' : ''}
         >
           <AlertTitle className="flex items-center gap-2">
             {announcement.title}
