@@ -20,15 +20,19 @@ export const createAdminUser = async (email: string, password: string) => {
 
     console.log(`User created with ID: ${userId}`);
 
-    // 2. Add the user to the admin role - Use service role to bypass RLS
+    // 2. Add the user to the admin role - Use direct API call to bypass RLS
     // This requires that the user_roles table exists in Supabase
-    // Use the REST API directly with the anon key
-    const response = await fetch(`${supabase.supabaseUrl}/rest/v1/user_roles`, {
+    const supabaseUrl = 'https://prwxksesdppvgjlvpemx.supabase.co';
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InByd3hrc2VzZHBwdmdqbHZwZW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3ODY5ODAsImV4cCI6MjA2MjM2Mjk4MH0.VBR3hTNxpAYeS75HLd3yW2TtxT7gtuB4Q5rPypN8Jzk';
+    
+    // For admin operations, we need to use service role or a special admin API key
+    // For this example, we're using the public key but this won't work unless RLS is configured to allow it
+    const response = await fetch(`${supabaseUrl}/rest/v1/user_roles`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': supabase.supabaseKey,
-        'Authorization': `Bearer ${supabase.supabaseKey}`,
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
         'Prefer': 'return=representation'
       },
       body: JSON.stringify([{ user_id: userId, role: 'admin' }])
@@ -37,7 +41,7 @@ export const createAdminUser = async (email: string, password: string) => {
     if (!response.ok) {
       const errorData = await response.json();
       console.error('Error response:', errorData);
-      throw new Error(`Failed to set admin role: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to set admin role: ${response.status} ${response.statusText} - This is likely because the anonymous key doesn't have permission to insert into user_roles table. Enable a Row Level Security policy or use a service role key.`);
     }
 
     console.log(`User ${email} set as admin successfully`);
