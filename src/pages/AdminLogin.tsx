@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { Shield, ArrowRight, UserPlus, AlertTriangle } from "lucide-react";
+import { Shield, ArrowRight, UserPlus, AlertTriangle, Info } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createAdminUser } from "@/utils/createAdminUser";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ const AdminLogin = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [verificationSent, setVerificationSent] = useState(false);
   const { signIn, user, isAdmin } = useAuth();
   const navigate = useNavigate();
 
@@ -32,8 +33,14 @@ const AdminLogin = () => {
     try {
       await signIn(email, password);
       navigate("/admin");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
+      
+      // Check if this is an email verification error
+      if (error?.message?.includes("Email not confirmed")) {
+        toast.error("Please verify your email before logging in");
+        setVerificationSent(true);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -50,14 +57,20 @@ const AdminLogin = () => {
     try {
       const result = await createAdminUser(email, password);
       toast.success(`Admin user created: ${result.email}`);
-      // Clear the form
-      setEmail("");
-      setPassword("");
+      
+      // After successful creation, try navigating to admin page
+      // If auto-login worked via createAdminUser
+      navigate("/admin");
     } catch (error: any) {
       console.error("Error creating admin user:", error);
       const errorMessage = error?.message || "Failed to create admin user";
       setCreateError(errorMessage);
       toast.error(errorMessage);
+      
+      // Still show verification message if the user was created but email verification is required
+      if (errorMessage.includes("Row Level Security") || errorMessage.includes("permission")) {
+        setVerificationSent(true);
+      }
     } finally {
       setIsCreatingAdmin(false);
     }
@@ -102,6 +115,13 @@ const AdminLogin = () => {
               />
             </div>
           </div>
+
+          {verificationSent && (
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded relative text-sm flex items-center gap-2">
+              <Info className="h-4 w-4" />
+              <span>Please check your email for a verification link.</span>
+            </div>
+          )}
 
           {createError && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative text-sm flex items-center gap-2">

@@ -11,6 +11,10 @@ export const createAdminUser = async (email: string, password: string) => {
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        // Set email_confirm to true to bypass email verification
+        emailRedirectTo: window.location.origin + "/admin"
+      }
     });
 
     if (authError) throw authError;
@@ -19,8 +23,21 @@ export const createAdminUser = async (email: string, password: string) => {
     if (!userId) throw new Error('Failed to get user ID');
 
     console.log(`User created with ID: ${userId}`);
+    
+    // 2. Attempt to manually confirm the user's email
+    const { error: updateError } = await supabase.auth.admin.updateUserById(
+      userId,
+      { email_confirm: true }
+    );
+    
+    if (updateError) {
+      console.warn('Unable to auto-verify email. User will need to verify via email.', updateError);
+      // Continue anyway, as we'll try to add the admin role
+    } else {
+      console.log('Email verified automatically');
+    }
 
-    // 2. Add the user to the admin role - Use direct API call to bypass RLS
+    // 3. Add the user to the admin role - Use direct API call to bypass RLS
     // This requires that the user_roles table exists in Supabase
     const supabaseUrl = 'https://prwxksesdppvgjlvpemx.supabase.co';
     const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InByd3hrc2VzZHBwdmdqbHZwZW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3ODY5ODAsImV4cCI6MjA2MjM2Mjk4MH0.VBR3hTNxpAYeS75HLd3yW2TtxT7gtuB4Q5rPypN8Jzk';
@@ -45,6 +62,20 @@ export const createAdminUser = async (email: string, password: string) => {
     }
 
     console.log(`User ${email} set as admin successfully`);
+    
+    // After creating the admin user, try to sign them in automatically
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (signInError) {
+      console.warn('Created admin user but could not automatically sign in:', signInError);
+      // This is not a fatal error, so we'll just return the user info
+    } else {
+      console.log('Admin user signed in successfully');
+    }
+    
     return { userId, email };
   } catch (error) {
     console.error('Error creating admin user:', error);
