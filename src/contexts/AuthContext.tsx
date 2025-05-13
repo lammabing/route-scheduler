@@ -43,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -64,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Check if user has admin role
   const checkUserRole = async (userId: string) => {
     try {
+      console.log('Checking admin role for user:', userId);
       // Query a user_roles table or similar to check if user is admin
       const { data, error } = await supabase
         .from('user_roles')
@@ -77,7 +79,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       
-      setIsAdmin(data?.role === 'admin');
+      const hasAdminRole = data?.role === 'admin';
+      console.log('User admin status:', hasAdminRole);
+      setIsAdmin(hasAdminRole);
+      
+      if (hasAdminRole) {
+        toast.success('Logged in as admin');
+      }
     } catch (error) {
       console.error('Error checking admin status:', error);
       setIsAdmin(false);
@@ -87,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true);
+      console.log('Attempting sign in for:', email);
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
