@@ -55,24 +55,34 @@ export const createAdminUser = async (email: string, password: string) => {
     const supabaseUrl = 'https://prwxksesdppvgjlvpemx.supabase.co';
     const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InByd3hrc2VzZHBwdmdqbHZwZW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3ODY5ODAsImV4cCI6MjA2MjM2Mjk4MH0.VBR3hTNxpAYeS75HLd3yW2TtxT7gtuB4Q5rPypN8Jzk';
     
-    const response = await fetch(`${supabaseUrl}/rest/v1/user_roles`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': supabaseAnonKey,
-        'Authorization': `Bearer ${supabaseAnonKey}`,
-        'Prefer': 'return=representation'
-      },
-      body: JSON.stringify([{ user_id: userId, role: 'admin' }])
-    });
+    try {
+      const response = await fetch(`${supabaseUrl}/rest/v1/user_roles`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({ user_id: userId, role: 'admin' })
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Error response:', errorData);
-      throw new Error(`Failed to set admin role: ${response.status} ${response.statusText} - This is likely because the anonymous key doesn't have permission to insert into user_roles table. Enable a Row Level Security policy or use a service role key.`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error response:', errorData);
+        
+        if (response.status === 409) {
+          console.log('User role may already exist, continuing...');
+        } else {
+          throw new Error(`Failed to set admin role: ${response.status} ${response.statusText} - This may be due to Row Level Security (RLS) policies. Please run the SQL in createUserRolesTable.sql in the Supabase SQL Editor first.`);
+        }
+      } else {
+        console.log(`User ${email} set as admin successfully`);
+      }
+    } catch (roleError) {
+      console.error('Role assignment error:', roleError);
+      throw roleError;
     }
-
-    console.log(`User ${email} set as admin successfully`);
     
     // After creating the admin user, sign them in automatically
     const { error: signInError } = await supabase.auth.signInWithPassword({

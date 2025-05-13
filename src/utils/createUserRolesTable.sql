@@ -18,6 +18,12 @@ ON public.user_roles FOR SELECT
 TO authenticated 
 USING (auth.uid() = user_id);
 
+-- Add policy to allow anonymous users to insert admin roles (for initial setup)
+CREATE POLICY "Allow anonymous users to create admin roles"
+ON public.user_roles FOR INSERT
+TO anon
+WITH CHECK (true);
+
 -- Insert a default admin user (replace with your user ID after registration)
 -- You'll need to sign up first, then get your user ID from the auth.users table
 -- INSERT INTO public.user_roles (user_id, role) VALUES ('your-user-id-here', 'admin');
