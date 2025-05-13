@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { Shield, ArrowRight, UserPlus } from "lucide-react";
+import { Shield, ArrowRight, UserPlus, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createAdminUser } from "@/utils/createAdminUser";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ const AdminLogin = () => {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const { signIn, user, isAdmin } = useAuth();
   const navigate = useNavigate();
 
@@ -45,15 +46,18 @@ const AdminLogin = () => {
     }
 
     setIsCreatingAdmin(true);
+    setCreateError(null);
     try {
       const result = await createAdminUser(email, password);
       toast.success(`Admin user created: ${result.email}`);
       // Clear the form
       setEmail("");
       setPassword("");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating admin user:", error);
-      toast.error("Failed to create admin user");
+      const errorMessage = error?.message || "Failed to create admin user";
+      setCreateError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsCreatingAdmin(false);
     }
@@ -98,6 +102,13 @@ const AdminLogin = () => {
               />
             </div>
           </div>
+
+          {createError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative text-sm flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              <span>Error: {createError}</span>
+            </div>
+          )}
 
           <div className="flex flex-col space-y-2">
             <Button

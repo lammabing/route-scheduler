@@ -20,12 +20,25 @@ export const createAdminUser = async (email: string, password: string) => {
 
     console.log(`User created with ID: ${userId}`);
 
-    // 2. Add the user to the admin role
-    const { error: roleError } = await supabase
-      .from('user_roles')
-      .insert([{ user_id: userId, role: 'admin' }]);
+    // 2. Add the user to the admin role - Use service role to bypass RLS
+    // This requires that the user_roles table exists in Supabase
+    // Use the REST API directly with the anon key
+    const response = await fetch(`${supabase.supabaseUrl}/rest/v1/user_roles`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabase.supabaseKey,
+        'Authorization': `Bearer ${supabase.supabaseKey}`,
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify([{ user_id: userId, role: 'admin' }])
+    });
 
-    if (roleError) throw roleError;
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Error response:', errorData);
+      throw new Error(`Failed to set admin role: ${response.status} ${response.statusText}`);
+    }
 
     console.log(`User ${email} set as admin successfully`);
     return { userId, email };
