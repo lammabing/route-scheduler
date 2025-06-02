@@ -154,8 +154,157 @@ export const seedSupabaseData = async () => {
       
       console.log(`✅ Inserted schedule with ID ${scheduleId} and all related data`);
     }
+
+    // 5. Create additional sample schedules for better coverage
+    console.log("Creating additional sample schedules...");
     
-    console.log("✅ Database seeding completed successfully!");
+    // Get route IDs for additional schedules
+    const routeIds = Object.values(routeMap);
+    
+    // Sample departure times for different schedule types
+    const weekdayTimes = ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:30', '18:00', '18:30', '19:00', '20:00'];
+    const weekendTimes = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
+    const holidayTimes = ['09:00', '11:00', '13:00', '15:00', '17:00'];
+
+    // Create schedules for each route
+    for (let i = 0; i < routeIds.length; i++) {
+      const routeId = routeIds[i];
+      const route = routes[i];
+      
+      // Weekday schedule
+      const { data: weekdaySchedule, error: weekdayError } = await supabase
+        .from('schedules')
+        .insert({
+          route_id: routeId,
+          name: `${route.name} - Weekday Schedule`,
+          effective_from: '2024-01-01',
+          effective_until: null,
+          is_weekend_schedule: false,
+          is_holiday_schedule: false
+        })
+        .select()
+        .single();
+      
+      if (weekdayError) throw new Error(`Error creating weekday schedule: ${weekdayError.message}`);
+      
+      // Insert weekday departure times
+      const weekdayDepartures = weekdayTimes.map(time => ({
+        schedule_id: weekdaySchedule.id,
+        time: time
+      }));
+      
+      const { error: weekdayDepartureError } = await supabase
+        .from('departure_times')
+        .insert(weekdayDepartures);
+      
+      if (weekdayDepartureError) throw new Error(`Error inserting weekday departures: ${weekdayDepartureError.message}`);
+      
+      // Weekend schedule
+      const { data: weekendSchedule, error: weekendError } = await supabase
+        .from('schedules')
+        .insert({
+          route_id: routeId,
+          name: `${route.name} - Weekend Schedule`,
+          effective_from: '2024-01-01',
+          effective_until: null,
+          is_weekend_schedule: true,
+          is_holiday_schedule: false
+        })
+        .select()
+        .single();
+      
+      if (weekendError) throw new Error(`Error creating weekend schedule: ${weekendError.message}`);
+      
+      // Insert weekend departure times
+      const weekendDepartures = weekendTimes.map(time => ({
+        schedule_id: weekendSchedule.id,
+        time: time
+      }));
+      
+      const { error: weekendDepartureError } = await supabase
+        .from('departure_times')
+        .insert(weekendDepartures);
+      
+      if (weekendDepartureError) throw new Error(`Error inserting weekend departures: ${weekendDepartureError.message}`);
+      
+      // Holiday schedule
+      const { data: holidaySchedule, error: holidayError } = await supabase
+        .from('schedules')
+        .insert({
+          route_id: routeId,
+          name: `${route.name} - Holiday Schedule`,
+          effective_from: '2024-01-01',
+          effective_until: null,
+          is_weekend_schedule: false,
+          is_holiday_schedule: true
+        })
+        .select()
+        .single();
+      
+      if (holidayError) throw new Error(`Error creating holiday schedule: ${holidayError.message}`);
+      
+      // Insert holiday departure times
+      const holidayDepartures = holidayTimes.map(time => ({
+        schedule_id: holidaySchedule.id,
+        time: time
+      }));
+      
+      const { error: holidayDepartureError } = await supabase
+        .from('departure_times')
+        .insert(holidayDepartures);
+      
+      if (holidayDepartureError) throw new Error(`Error inserting holiday departures: ${holidayDepartureError.message}`);
+      
+      // Create sample fares for each schedule
+      const sampleFares = [
+        { name: 'Adult', fare_type: 'standard', price: 3.50, currency: 'USD', description: 'Standard adult fare' },
+        { name: 'Student', fare_type: 'student', price: 2.50, currency: 'USD', description: 'Student discount fare' },
+        { name: 'Senior', fare_type: 'senior', price: 2.00, currency: 'USD', description: 'Senior citizen fare' },
+        { name: 'Child', fare_type: 'child', price: 1.50, currency: 'USD', description: 'Child fare (under 12)' }
+      ];
+      
+      // Insert fares for weekday schedule
+      const weekdayFares = sampleFares.map(fare => ({
+        ...fare,
+        schedule_id: weekdaySchedule.id
+      }));
+      
+      const { error: weekdayFareError } = await supabase
+        .from('fares')
+        .insert(weekdayFares);
+      
+      if (weekdayFareError) throw new Error(`Error inserting weekday fares: ${weekdayFareError.message}`);
+      
+      // Insert fares for weekend schedule (slightly higher prices)
+      const weekendFares = sampleFares.map(fare => ({
+        ...fare,
+        schedule_id: weekendSchedule.id,
+        price: fare.price * 1.1 // 10% higher for weekends
+      }));
+      
+      const { error: weekendFareError } = await supabase
+        .from('fares')
+        .insert(weekendFares);
+      
+      if (weekendFareError) throw new Error(`Error inserting weekend fares: ${weekendFareError.message}`);
+      
+      // Insert fares for holiday schedule
+      const holidayFares = sampleFares.map(fare => ({
+        ...fare,
+        schedule_id: holidaySchedule.id,
+        price: fare.price * 1.2 // 20% higher for holidays
+      }));
+      
+      const { error: holidayFareError } = await supabase
+        .from('fares')
+        .insert(holidayFares);
+      
+      if (holidayFareError) throw new Error(`Error inserting holiday fares: ${holidayFareError.message}`);
+      
+      console.log(`✅ Created comprehensive schedules for route: ${route.name}`);
+    }
+    
+    console.log("✅ Database seeding completed successfully with comprehensive schedule data!");
     return true;
   } catch (error) {
     console.error("Error seeding database:", error);
