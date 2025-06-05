@@ -5,6 +5,9 @@ import { publicHolidays } from "@/data/mockData";
 export const seedHolidays = async () => {
   console.log("Inserting public holidays...");
   
+  // First try to delete existing records to avoid conflicts
+  await supabase.from('public_holidays').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  
   const { data: holidayData, error: holidayError } = await supabase
     .from('public_holidays')
     .insert(publicHolidays.map(holiday => ({

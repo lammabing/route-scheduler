@@ -5,6 +5,9 @@ import { routes } from "@/data/mockData";
 export const seedRoutes = async () => {
   console.log("Inserting routes...");
   
+  // First try to delete existing records to avoid conflicts
+  await supabase.from('routes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  
   const { data: routeData, error: routeError } = await supabase
     .from('routes')
     .insert(routes.map(route => ({

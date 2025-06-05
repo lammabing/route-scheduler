@@ -5,6 +5,9 @@ import { timeInfos } from "@/data/mockData";
 export const seedTimeInfos = async () => {
   console.log("Inserting time info symbols...");
   
+  // First try to delete existing records to avoid conflicts
+  await supabase.from('time_infos').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  
   const { data: timeInfoData, error: timeInfoError } = await supabase
     .from('time_infos')
     .insert(timeInfos.map(info => ({
