@@ -6,6 +6,9 @@ import { weekdayTimes, weekendTimes, holidayTimes, createFareTemplates } from ".
 export const seedSchedules = async (routeMap: Record<string, string>) => {
   console.log("Creating comprehensive schedules...");
   
+  // First try to delete existing records to avoid conflicts
+  await supabase.from('schedules').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  
   const routeIds = Object.values(routeMap);
   
   // Create schedules for each route
@@ -42,34 +45,58 @@ const createScheduleWithDepartures = async (
   
   const config = scheduleConfig[type];
   
-  const { data: schedule, error: scheduleError } = await supabase
-    .from('schedules')
-    .insert({
-      route_id: routeId,
-      name: `${routeName} - ${type.charAt(0).toUpperCase() + type.slice(1)} Schedule`,
-      effective_from: '2024-01-01',
-      effective_until: null,
-      ...config
-    })
-    .select()
-    .single();
-  
-  if (scheduleError) {
-    console.error(`${type} schedule error:`, scheduleError);
-    return;
-  }
-  
-  if (schedule) {
-    // Insert departure times
-    const departures = times.map(time => ({
-      schedule_id: schedule.id,
-      time: time
-    }));
+  try {
+    const { data: schedule, error: scheduleError } = await supabase
+      .from('schedules')
+      .insert({
+        route_id: routeId,
+        name: `${routeName} - ${type.charAt(0).toUpperCase() + type.slice(1)} Schedule`,
+        effective_from: '2024-01-01',
+        effective_until: null,
+        ...config
+      })
+      .select()
+      .single();
     
-    await supabase.from('departure_times').insert(departures);
+    if (scheduleError) {
+      console.error(`${type} schedule error:`, scheduleError);
+      return;
+    }
     
-    // Create fares
-    const fares = createFareTemplates(schedule.id, type);
-    await supabase.from('fares').insert(fares);
+    if (schedule) {
+      console.log(`✅ Created ${type} schedule for ${routeName}`);
+      
+      // Insert departure times
+      const departures = times.map(time => ({
+        schedule_id: schedule.id,
+        time: time
+      }));
+      
+      const { error: departureError } = await supabase
+        .from('departure_times')
+        .insert(departures);
+      
+      if (departureError) {
+        console.error(`Error inserting departure times for ${type} schedule:`, departureError);
+        return;
+      }
+      
+      console.log(`✅ Added ${departures.length} departure times for ${type} schedule`);
+      
+      // Create fares
+      const fares = createFareTemplates(schedule.id, type);
+      const { error: fareError } = await supabase
+        .from('fares')
+        .insert(fares);
+      
+      if (fareError) {
+        console.error(`Error inserting fares for ${type} schedule:`, fareError);
+        return;
+      }
+      
+      console.log(`✅ Added ${fares.length} fares for ${type} schedule`);
+    }
+  } catch (error) {
+    console.error(`Unexpected error creating ${type} schedule for ${routeName}:`, error);
   }
 };
