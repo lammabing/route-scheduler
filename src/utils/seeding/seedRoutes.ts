@@ -7,16 +7,14 @@ export const seedRoutes = async () => {
   
   const { data: routeData, error: routeError } = await supabase
     .from('routes')
-    .upsert(routes.map(route => ({
+    .insert(routes.map(route => ({
       name: route.name,
       origin: route.origin,
       destination: route.destination,
       description: route.description,
       transport_type: route.transportType,
       featured_image: route.featuredImage
-    })), {
-      onConflict: 'name'
-    })
+    })))
     .select();
     
   if (routeError) {

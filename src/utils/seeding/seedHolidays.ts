@@ -7,13 +7,11 @@ export const seedHolidays = async () => {
   
   const { data: holidayData, error: holidayError } = await supabase
     .from('public_holidays')
-    .upsert(publicHolidays.map(holiday => ({
+    .insert(publicHolidays.map(holiday => ({
       name: holiday.title,
       date: holiday.date,
       description: holiday.description || null
-    })), {
-      onConflict: 'date'
-    })
+    })))
     .select();
     
   if (holidayError) {

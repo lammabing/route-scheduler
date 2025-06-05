@@ -44,14 +44,12 @@ const createScheduleWithDepartures = async (
   
   const { data: schedule, error: scheduleError } = await supabase
     .from('schedules')
-    .upsert({
+    .insert({
       route_id: routeId,
       name: `${routeName} - ${type.charAt(0).toUpperCase() + type.slice(1)} Schedule`,
       effective_from: '2024-01-01',
       effective_until: null,
       ...config
-    }, {
-      onConflict: 'route_id,name'
     })
     .select()
     .single();
@@ -68,14 +66,10 @@ const createScheduleWithDepartures = async (
       time: time
     }));
     
-    await supabase.from('departure_times').upsert(departures, {
-      onConflict: 'schedule_id,time'
-    });
+    await supabase.from('departure_times').insert(departures);
     
     // Create fares
     const fares = createFareTemplates(schedule.id, type);
-    await supabase.from('fares').upsert(fares, {
-      onConflict: 'schedule_id,name'
-    });
+    await supabase.from('fares').insert(fares);
   }
 };

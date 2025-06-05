@@ -7,12 +7,10 @@ export const seedTimeInfos = async () => {
   
   const { data: timeInfoData, error: timeInfoError } = await supabase
     .from('time_infos')
-    .upsert(timeInfos.map(info => ({
+    .insert(timeInfos.map(info => ({
       symbol: info.symbol,
       description: info.description
-    })), {
-      onConflict: 'symbol'
-    })
+    })))
     .select();
     
   if (timeInfoError) {
