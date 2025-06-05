@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { DayOfWeek, DepartureTime, Fare, PublicHoliday, Route, Schedule, TimeInfo } from "@/types";
 import { findScheduleForDate, getTimeInfo, getFaresForTime, saveDataForOffline, getCachedRouteData, saveRecentRoute, saveViewedDate } from "@/utils/scheduleUtils";
@@ -88,13 +87,16 @@ const fetchSchedules = async (): Promise<Schedule[]> => {
 const getScheduleTags = (schedule: any): DayOfWeek[] => {
   const tags: DayOfWeek[] = [];
   
-  // Check if it's a weekend or holiday schedule
-  if (schedule.is_weekend_schedule) {
-    tags.push('sat', 'sun');
-  } else if (schedule.is_holiday_schedule) {
+  // Check if it's a holiday schedule
+  if (schedule.is_holiday_schedule) {
     tags.push('holiday');
-  } else {
-    // Weekday schedule
+  } 
+  // Check if it's a weekend schedule
+  else if (schedule.is_weekend_schedule) {
+    tags.push('sat', 'sun');
+  } 
+  // Otherwise it's a weekday schedule
+  else {
     tags.push('mon', 'tue', 'wed', 'thu', 'fri');
   }
   
@@ -228,6 +230,17 @@ export const useSchedule = ({
       setRouteId(routes[0].id);
     }
   }, [routes, routeId]);
+  
+  // Log debugging information
+  useEffect(() => {
+    console.log("Schedule debugging info:", {
+      routeId,
+      date: date.toDateString(),
+      totalSchedules: schedules.length,
+      schedulesForRoute: schedules.filter(s => s.routeId === routeId).length,
+      isHoliday: isPublicHoliday(date, publicHolidays)
+    });
+  }, [routeId, date, schedules, publicHolidays]);
   
   // Derived state
   const currentRoute = routes.find(route => route.id === routeId);
