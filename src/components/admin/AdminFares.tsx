@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -132,7 +131,6 @@ const AdminFares = () => {
     fetchSchedules();
   }, []);
 
-  // Handle form submission
   const onSubmit = async (data: FareFormData) => {
     try {
       setIsSubmitting(true);
