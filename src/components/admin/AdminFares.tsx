@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,23 +9,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Tag, Plus, Edit2, Trash2, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { Fare } from "@/types";
-import { FareType, CurrencyCode } from "@/types/database.types";
 
 const fareSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name must be 100 characters or less"),
-  fare_type: z.enum(["standard", "concession", "student", "senior", "child", "other"]),
-  price: z.number().min(0, "Price must be a positive number"),
-  currency: z.enum(["USD", "EUR", "GBP", "JPY", "AUD", "CAD"]),
+  fareType: z.enum(['standard', 'concession', 'student', 'senior', 'child', 'other']),
+  price: z.number().min(0, "Price must be 0 or greater"),
+  currency: z.enum(['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD']),
   description: z.string().optional(),
-  schedule_id: z.string().min(1, "Schedule is required"),
+  scheduleId: z.string().min(1, "Schedule is required"),
 });
 
 type FareFormData = z.infer<typeof fareSchema>;
@@ -32,26 +30,20 @@ type FareFormData = z.infer<typeof fareSchema>;
 interface DatabaseFare {
   id: string;
   name: string;
-  fare_type: FareType;
+  fare_type: string;
   price: number;
-  currency: CurrencyCode;
+  currency: string;
   description?: string;
   schedule_id: string;
   created_at: string;
   updated_at: string;
-  schedules?: {
-    name: string;
-    routes?: {
-      name: string;
-    };
-  };
 }
 
 interface Schedule {
   id: string;
   name: string;
   route_id: string;
-  routes?: {
+  routes: {
     name: string;
   };
 }
@@ -68,69 +60,63 @@ const AdminFares = () => {
     resolver: zodResolver(fareSchema),
     defaultValues: {
       name: "",
-      fare_type: "standard",
+      fareType: "standard",
       price: 0,
       currency: "USD",
       description: "",
-      schedule_id: "",
+      scheduleId: "",
     },
   });
 
-  // Fetch fares
-  const fetchFares = async () => {
+  // Fetch fares and schedules
+  const fetchData = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
+      
+      // Fetch fares
+      const { data: faresData, error: faresError } = await supabase
         .from('fares')
-        .select(`
-          *,
-          schedules (
-            name,
-            routes (
-              name
-            )
-          )
-        `)
-        .order('name');
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setFares(data || []);
-    } catch (error) {
-      console.error('Error fetching fares:', error);
-      toast.error('Failed to load fares');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      if (faresError) throw faresError;
 
-  // Fetch schedules
-  const fetchSchedules = async () => {
-    try {
-      const { data, error } = await supabase
+      // Fetch schedules with route names
+      const { data: schedulesData, error: schedulesError } = await supabase
         .from('schedules')
         .select(`
           id,
           name,
           route_id,
-          routes (
+          routes:route_id (
             name
           )
-        `)
-        .order('name');
+        `);
 
-      if (error) throw error;
-      setSchedules(data || []);
+      if (schedulesError) throw schedulesError;
+
+      setFares(faresData || []);
+      // Fix the type mapping by properly handling the nested route object
+      const formattedSchedules = (schedulesData || []).map(schedule => ({
+        ...schedule,
+        routes: {
+          name: Array.isArray(schedule.routes) ? schedule.routes[0]?.name || 'Unknown Route' : schedule.routes?.name || 'Unknown Route'
+        }
+      }));
+      setSchedules(formattedSchedules);
     } catch (error) {
-      console.error('Error fetching schedules:', error);
-      toast.error('Failed to load schedules');
+      console.error('Error fetching data:', error);
+      toast.error('Failed to load fares and schedules');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchFares();
-    fetchSchedules();
+    fetchData();
   }, []);
 
+  // Handle form submission
   const onSubmit = async (data: FareFormData) => {
     try {
       setIsSubmitting(true);
@@ -141,11 +127,11 @@ const AdminFares = () => {
           .from('fares')
           .update({
             name: data.name,
-            fare_type: data.fare_type,
+            fare_type: data.fareType,
             price: data.price,
             currency: data.currency,
             description: data.description,
-            schedule_id: data.schedule_id,
+            schedule_id: data.scheduleId,
           })
           .eq('id', editingFare.id);
 
@@ -157,11 +143,11 @@ const AdminFares = () => {
           .from('fares')
           .insert({
             name: data.name,
-            fare_type: data.fare_type,
+            fare_type: data.fareType,
             price: data.price,
             currency: data.currency,
             description: data.description,
-            schedule_id: data.schedule_id,
+            schedule_id: data.scheduleId,
           });
 
         if (error) throw error;
@@ -174,7 +160,7 @@ const AdminFares = () => {
       setEditingFare(null);
       
       // Refresh the list
-      await fetchFares();
+      await fetchData();
     } catch (error) {
       console.error('Error saving fare:', error);
       toast.error(editingFare ? 'Failed to update fare' : 'Failed to create fare');
@@ -194,7 +180,7 @@ const AdminFares = () => {
       if (error) throw error;
 
       toast.success('Fare deleted successfully');
-      await fetchFares();
+      await fetchData();
     } catch (error) {
       console.error('Error deleting fare:', error);
       toast.error('Failed to delete fare');
@@ -205,11 +191,11 @@ const AdminFares = () => {
   const handleEdit = (fare: DatabaseFare) => {
     setEditingFare(fare);
     form.setValue('name', fare.name);
-    form.setValue('fare_type', fare.fare_type);
+    form.setValue('fareType', fare.fare_type as any);
     form.setValue('price', fare.price);
-    form.setValue('currency', fare.currency);
+    form.setValue('currency', fare.currency as any);
     form.setValue('description', fare.description || '');
-    form.setValue('schedule_id', fare.schedule_id);
+    form.setValue('scheduleId', fare.schedule_id);
     setIsDialogOpen(true);
   };
 
@@ -220,30 +206,16 @@ const AdminFares = () => {
     setIsDialogOpen(true);
   };
 
-  const getFareTypeColor = (fareType: string) => {
-    switch (fareType) {
-      case "standard":
-        return "bg-primary text-primary-foreground";
-      case "concession":
-        return "bg-blue-500 text-white";
-      case "student":
-        return "bg-green-500 text-white";
-      case "senior":
-        return "bg-purple-500 text-white";
-      case "child":
-        return "bg-amber-500 text-white";
-      case "other":
-        return "bg-slate-500 text-white";
-      default:
-        return "bg-muted text-muted-foreground";
-    }
-  };
-
-  const formatCurrency = (amount: number, currency: string) => {
+  const formatPrice = (price: number, currency: string) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
-    }).format(amount);
+    }).format(price);
+  };
+
+  const getScheduleName = (scheduleId: string) => {
+    const schedule = schedules.find(s => s.id === scheduleId);
+    return schedule ? `${schedule.name} (${schedule.routes.name})` : 'Unknown Schedule';
   };
 
   if (isLoading) {
@@ -259,7 +231,7 @@ const AdminFares = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold">Fare Management</h2>
-          <p className="text-muted-foreground">Manage fares for different passenger types and schedules</p>
+          <p className="text-muted-foreground">Manage fare prices and types for different schedules</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -275,7 +247,7 @@ const AdminFares = () => {
               <DialogDescription>
                 {editingFare 
                   ? 'Update the fare information below.'
-                  : 'Create a new fare that can be associated with schedules.'
+                  : 'Create a new fare that can be applied to schedule departures.'
                 }
               </DialogDescription>
             </DialogHeader>
@@ -286,9 +258,9 @@ const AdminFares = () => {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Name</FormLabel>
+                      <FormLabel>Fare Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Adult, Student, Senior" {...field} />
+                        <Input placeholder="e.g., Adult, Child, Senior" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -296,23 +268,22 @@ const AdminFares = () => {
                 />
                 <FormField
                   control={form.control}
-                  name="fare_type"
+                  name="scheduleId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Fare Type</FormLabel>
+                      <FormLabel>Schedule</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select fare type" />
+                            <SelectValue placeholder="Select a schedule" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="standard">Standard</SelectItem>
-                          <SelectItem value="concession">Concession</SelectItem>
-                          <SelectItem value="student">Student</SelectItem>
-                          <SelectItem value="senior">Senior</SelectItem>
-                          <SelectItem value="child">Child</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
+                          {schedules.map((schedule) => (
+                            <SelectItem key={schedule.id} value={schedule.id}>
+                              {schedule.name} ({schedule.routes.name})
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -322,19 +293,25 @@ const AdminFares = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="price"
+                    name="fareType"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Price</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            step="0.01" 
-                            placeholder="0.00"
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          />
-                        </FormControl>
+                        <FormLabel>Fare Type</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="standard">Standard</SelectItem>
+                            <SelectItem value="concession">Concession</SelectItem>
+                            <SelectItem value="student">Student</SelectItem>
+                            <SelectItem value="senior">Senior</SelectItem>
+                            <SelectItem value="child">Child</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -348,7 +325,7 @@ const AdminFares = () => {
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Currency" />
+                              <SelectValue placeholder="Select currency" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -367,24 +344,19 @@ const AdminFares = () => {
                 </div>
                 <FormField
                   control={form.control}
-                  name="schedule_id"
+                  name="price"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Schedule</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select schedule" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {schedules.map((schedule) => (
-                            <SelectItem key={schedule.id} value={schedule.id}>
-                              {schedule.name} {schedule.routes?.name && `(${schedule.routes.name})`}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>Price</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.01"
+                          placeholder="0.00"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -430,7 +402,7 @@ const AdminFares = () => {
             <Tag className="h-16 w-16 text-muted-foreground mb-4" />
             <CardTitle className="mb-2">No Fares Created</CardTitle>
             <CardDescription className="text-center max-w-md mb-4">
-              Fares define pricing for different passenger types and can be associated with specific schedules.
+              Fares define pricing for different types of passengers and can be applied to specific schedules.
             </CardDescription>
             <Button onClick={handleAddNew}>
               <Plus className="h-4 w-4 mr-2" />
@@ -443,14 +415,14 @@ const AdminFares = () => {
           <CardHeader>
             <CardTitle>Fares ({fares.length})</CardTitle>
             <CardDescription>
-              Manage pricing for different passenger types across your schedules
+              Manage fare pricing for different passenger types across schedules
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
+                  <TableHead>Fare Name</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Schedule</TableHead>
@@ -463,21 +435,16 @@ const AdminFares = () => {
                   <TableRow key={fare.id}>
                     <TableCell className="font-medium">{fare.name}</TableCell>
                     <TableCell>
-                      <Badge className={getFareTypeColor(fare.fare_type)}>
-                        {fare.fare_type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-mono font-semibold">
-                      {formatCurrency(fare.price, fare.currency)}
+                      <span className="capitalize">{fare.fare_type}</span>
                     </TableCell>
                     <TableCell>
-                      <div>
-                        <div className="font-medium">{fare.schedules?.name}</div>
-                        {fare.schedules?.routes?.name && (
-                          <div className="text-sm text-muted-foreground">
-                            {fare.schedules.routes.name}
-                          </div>
-                        )}
+                      <div className="font-mono">
+                        {formatPrice(fare.price, fare.currency)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="max-w-xs truncate">
+                        {getScheduleName(fare.schedule_id)}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -507,7 +474,7 @@ const AdminFares = () => {
                               <AlertDialogTitle>Delete Fare</AlertDialogTitle>
                               <AlertDialogDescription>
                                 Are you sure you want to delete the fare "{fare.name}"? 
-                                This action cannot be undone and may affect existing bookings.
+                                This action cannot be undone and may affect schedule pricing.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>

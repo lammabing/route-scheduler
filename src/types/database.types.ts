@@ -10,6 +10,7 @@ export type Json =
 export type TransportType = 'bus' | 'train' | 'ferry' | 'tram' | 'metro' | 'other';
 export type FareType = 'standard' | 'concession' | 'student' | 'senior' | 'child' | 'other';
 export type CurrencyCode = 'USD' | 'EUR' | 'GBP' | 'JPY' | 'AUD' | 'CAD';
+export type AnnouncementUrgency = 'info' | 'important' | 'urgent';
 
 export interface Database {
   public: {
@@ -229,6 +230,41 @@ export interface Database {
           departure_time_id?: string;
           fare_id?: string;
           created_at?: string;
+        };
+      };
+      announcements: {
+        Row: {
+          id: string;
+          title: string;
+          content: string;
+          route_id?: string;
+          urgency: AnnouncementUrgency;
+          effective_from?: string;
+          effective_until?: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          content: string;
+          route_id?: string;
+          urgency?: AnnouncementUrgency;
+          effective_from?: string;
+          effective_until?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          content?: string;
+          route_id?: string;
+          urgency?: AnnouncementUrgency;
+          effective_from?: string;
+          effective_until?: string;
+          created_at?: string;
+          updated_at?: string;
         };
       };
     };
