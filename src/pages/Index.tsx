@@ -1,7 +1,7 @@
 
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { useSchedule } from "@/hooks/useSchedule";
+import { useLocalSchedule } from "@/hooks/useLocalSchedule";
 import Header from "@/components/Header";
 import RouteSelectionCard from "@/components/RouteSelectionCard";
 import RouteDetailsCard from "@/components/RouteDetailsCard";
@@ -28,7 +28,7 @@ const Index = () => {
     getFaresForTime,
     availableFares,
     refreshData
-  } = useSchedule();
+  } = useLocalSchedule();
   
   // Error handling
   useEffect(() => {

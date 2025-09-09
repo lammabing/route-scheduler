@@ -1,11 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar, Plus, Edit, Trash2, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useSchedule } from "@/hooks/useSchedule";
+import { useLocalSchedule } from "@/hooks/useLocalSchedule";
 import { format } from "date-fns";
-import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import {
   Table,
@@ -25,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import ScheduleForm from "./forms/ScheduleForm";
 import DepartureTimesManager from "./DepartureTimesManager";
+import { api } from "@/lib/local-api";
 
 interface Schedule {
   id: string;
@@ -43,7 +42,7 @@ interface Schedule {
 }
 
 const AdminSchedules = () => {
-  const { routes } = useSchedule({});
+  const { routes } = useLocalSchedule({});
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
@@ -51,22 +50,10 @@ const AdminSchedules = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDepartureTimesDialogOpen, setIsDepartureTimesDialogOpen] = useState(false);
 
-  // Fetch schedules from Supabase
+  // Fetch schedules from local API
   const fetchSchedules = async () => {
     try {
-      const { data, error } = await supabase
-        .from('schedules')
-        .select(`
-          *,
-          routes (
-            name,
-            origin,
-            destination
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await api.getSchedules();
       setSchedules(data || []);
     } catch (error) {
       console.error('Error fetching schedules:', error);
@@ -82,24 +69,10 @@ const AdminSchedules = () => {
 
   const handleCreateSchedule = async (scheduleData: any) => {
     try {
-      const { data, error } = await supabase
-        .from('schedules')
-        .insert([scheduleData])
-        .select(`
-          *,
-          routes (
-            name,
-            origin,
-            destination
-          )
-        `)
-        .single();
-
-      if (error) throw error;
-
-      setSchedules(prev => [data, ...prev]);
+      await api.createSchedule(scheduleData);
       setIsCreateDialogOpen(false);
       toast.success('Schedule created successfully');
+      fetchSchedules(); // Refresh the list
     } catch (error) {
       console.error('Error creating schedule:', error);
       toast.error('Failed to create schedule');
@@ -110,30 +83,11 @@ const AdminSchedules = () => {
     if (!selectedSchedule) return;
 
     try {
-      const { data, error } = await supabase
-        .from('schedules')
-        .update(scheduleData)
-        .eq('id', selectedSchedule.id)
-        .select(`
-          *,
-          routes (
-            name,
-            origin,
-            destination
-          )
-        `)
-        .single();
-
-      if (error) throw error;
-
-      setSchedules(prev => 
-        prev.map(schedule => 
-          schedule.id === selectedSchedule.id ? data : schedule
-        )
-      );
+      await api.updateSchedule(selectedSchedule.id, scheduleData);
       setIsEditDialogOpen(false);
       setSelectedSchedule(null);
       toast.success('Schedule updated successfully');
+      fetchSchedules(); // Refresh the list
     } catch (error) {
       console.error('Error updating schedule:', error);
       toast.error('Failed to update schedule');
@@ -146,13 +100,7 @@ const AdminSchedules = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('schedules')
-        .delete()
-        .eq('id', scheduleId);
-
-      if (error) throw error;
-
+      await api.deleteSchedule(scheduleId);
       setSchedules(prev => prev.filter(schedule => schedule.id !== scheduleId));
       toast.success('Schedule deleted successfully');
     } catch (error) {

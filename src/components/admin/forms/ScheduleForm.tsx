@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,13 +22,36 @@ interface ScheduleFormProps {
 
 const ScheduleForm = ({ routes, initialData, onSubmit, onCancel }: ScheduleFormProps) => {
   const [formData, setFormData] = useState({
-    name: initialData?.name || "",
-    route_id: initialData?.route_id || "",
-    effective_from: initialData?.effective_from || "",
-    effective_until: initialData?.effective_until || "",
-    is_weekend_schedule: initialData?.is_weekend_schedule || false,
-    is_holiday_schedule: initialData?.is_holiday_schedule || false,
+    name: "",
+    route_id: "",
+    effective_from: "",
+    effective_until: "",
+    is_weekend_schedule: false,
+    is_holiday_schedule: false,
   });
+
+  // Update form data when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || "",
+        route_id: initialData.route_id || "",
+        effective_from: initialData.effective_from || "",
+        effective_until: initialData.effective_until || "",
+        is_weekend_schedule: initialData.is_weekend_schedule || false,
+        is_holiday_schedule: initialData.is_holiday_schedule || false,
+      });
+    } else {
+      setFormData({
+        name: "",
+        route_id: "",
+        effective_from: "",
+        effective_until: "",
+        is_weekend_schedule: false,
+        is_holiday_schedule: false,
+      });
+    }
+  }, [initialData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

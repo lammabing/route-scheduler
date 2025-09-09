@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { Route } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Edit, Trash2, Eye, Image } from "lucide-react";
+import { Plus, Edit, Trash2, Image } from "lucide-react";
 import { 
   Table,
   TableBody,
@@ -13,7 +12,7 @@ import {
   TableRow
 } from "@/components/ui/table";
 import RouteForm from "@/components/admin/forms/RouteForm";
-import { useSchedule } from "@/hooks/useSchedule";
+import { useLocalSchedule } from "@/hooks/useLocalSchedule";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -22,10 +21,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
+import { api } from "@/lib/local-api";
 
 const AdminRoutes = () => {
-  const { routes, refreshData } = useSchedule({});
+  const { routes, refreshData } = useLocalSchedule({});
   const [searchQuery, setSearchQuery] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [currentRoute, setCurrentRoute] = useState<Route | null>(null);
@@ -60,14 +59,8 @@ const AdminRoutes = () => {
     
     setIsLoading(true);
     try {
-      // Delete the route from Supabase
-      const { error } = await supabase
-        .from('routes')
-        .delete()
-        .eq('id', currentRoute.id);
-      
-      if (error) throw error;
-      
+      // Make API call to delete the route
+      await api.deleteRoute(currentRoute.id);
       toast.success("Route deleted successfully");
       refreshData();
     } catch (error) {

@@ -4,6 +4,25 @@
 
 **URL**: https://lovable.dev/projects/a8281d19-6539-489e-a34d-dae2084c3d04
 
+## Automated Setup
+
+For an automated installation process, you can use the setup script:
+
+```sh
+cd setup
+./install.sh
+```
+
+This script will:
+- Check for required dependencies (Node.js, npm, Docker, Docker Compose)
+- Install all npm dependencies
+- Set up a PostgreSQL database using Docker Compose
+- Create the necessary database schema
+- Load sample data
+- Create environment configuration files
+
+For detailed instructions, see [setup/README.md](setup/README.md).
+
 ## How can I edit this code?
 
 There are several ways of editing your application.

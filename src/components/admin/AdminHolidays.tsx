@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +11,9 @@ import { Calendar, Plus, Edit2, Trash2, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { api } from "@/lib/local-api";
 
 const holidaySchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name must be 100 characters or less"),
@@ -53,12 +52,7 @@ const AdminHolidays = () => {
   const fetchHolidays = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('public_holidays')
-        .select('*')
-        .order('date', { ascending: true });
-
-      if (error) throw error;
+      const data = await api.getPublicHolidays();
       setHolidays(data || []);
     } catch (error) {
       console.error('Error fetching holidays:', error);
@@ -79,28 +73,19 @@ const AdminHolidays = () => {
 
       if (editingHoliday) {
         // Update existing holiday
-        const { error } = await supabase
-          .from('public_holidays')
-          .update({
-            name: data.name,
-            date: data.date,
-            description: data.description,
-          })
-          .eq('id', editingHoliday.id);
-
-        if (error) throw error;
+        await api.updatePublicHoliday(editingHoliday.id, {
+          name: data.name,
+          date: data.date,
+          description: data.description,
+        });
         toast.success('Holiday updated successfully');
       } else {
         // Create new holiday
-        const { error } = await supabase
-          .from('public_holidays')
-          .insert({
-            name: data.name,
-            date: data.date,
-            description: data.description,
-          });
-
-        if (error) throw error;
+        await api.createPublicHoliday({
+          name: data.name,
+          date: data.date,
+          description: data.description,
+        });
         toast.success('Holiday created successfully');
       }
 
@@ -122,13 +107,7 @@ const AdminHolidays = () => {
   // Handle delete
   const handleDelete = async (holidayId: string) => {
     try {
-      const { error } = await supabase
-        .from('public_holidays')
-        .delete()
-        .eq('id', holidayId);
-
-      if (error) throw error;
-
+      await api.deletePublicHoliday(holidayId);
       toast.success('Holiday deleted successfully');
       await fetchHolidays();
     } catch (error) {

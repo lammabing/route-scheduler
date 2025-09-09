@@ -1,12 +1,9 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 interface AuthContextType {
-  session: Session | null;
+  session: any | null;
   user: any | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
@@ -17,98 +14,80 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<any | null>(null);
   const [user, setUser] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    setIsLoading(true);
-    
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        checkUserRole(session.user.id);
-      } else {
-        setIsAdmin(false);
-      }
-      
-      setIsLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          checkUserRole(session.user.id);
-        } else {
-          setIsAdmin(false);
-        }
-        
-        setIsLoading(false);
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [navigate]);
+    // Check for existing session in localStorage
+    const storedSession = localStorage.getItem('adminSession');
+    if (storedSession) {
+      const sessionData = JSON.parse(storedSession);
+      setSession(sessionData);
+      setUser(sessionData.user);
+      setIsAdmin(sessionData.isAdmin || false);
+    }
+    setIsLoading(false);
+  }, []);
 
   // Check if user has admin role
   const checkUserRole = async (userId: string) => {
     try {
-      console.log('Checking admin role for user:', userId);
-      // Query a user_roles table or similar to check if user is admin
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .single();
-
-      if (error) {
-        console.error('Error checking role:', error);
-        setIsAdmin(false);
-        return;
-      }
-      
-      const hasAdminRole = data?.role === 'admin';
-      console.log('User admin status:', hasAdminRole);
-      setIsAdmin(hasAdminRole);
-      
-      if (hasAdminRole) {
-        toast.success('Logged in as admin');
-      }
+      // For local version, we'll check our local user_roles table
+      // In a real implementation, you would make an API call here
+      // For now, we'll just check if it's our known admin user
+      const isAdminUser = userId === 'f5aafdf1-c2c9-4992-9da2-7e521005b1ea';
+      setIsAdmin(isAdminUser);
+      return isAdminUser;
     } catch (error) {
       console.error('Error checking admin status:', error);
       setIsAdmin(false);
+      return false;
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      console.log('Attempting sign in for:', email);
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        toast.error('Login failed: ' + error.message);
-        throw error;
+      
+      // For local version, we'll simulate authentication
+      // In a real implementation, you would make an API call to verify credentials
+      // For now, we'll accept any non-empty email/password and check if it matches our admin user
+      
+      // Simulate a delay for realism
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Create a mock user object
+      const mockUser = {
+        id: 'f5aafdf1-c2c9-4992-9da2-7e521005b1ea',
+        email: email,
+      };
+      
+      // Check if user has admin role
+      const isAdminUser = await checkUserRole(mockUser.id);
+      
+      if (!isAdminUser) {
+        throw new Error('User is not an administrator');
       }
-
+      
+      // Create session data
+      const sessionData = {
+        user: mockUser,
+        isAdmin: isAdminUser,
+      };
+      
+      // Store session in localStorage
+      localStorage.setItem('adminSession', JSON.stringify(sessionData));
+      
+      setSession(sessionData);
+      setUser(mockUser);
+      
       toast.success('Logged in successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error signing in:', error);
+      toast.error('Login failed: ' + (error?.message || 'Invalid credentials'));
       throw error;
     } finally {
       setIsLoading(false);
@@ -118,7 +97,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       setIsLoading(true);
-      await supabase.auth.signOut();
+      
+      // Remove session from localStorage
+      localStorage.removeItem('adminSession');
+      
+      setSession(null);
+      setUser(null);
+      setIsAdmin(false);
+      
       navigate('/admin/login');
       toast.success('Logged out successfully');
     } catch (error) {

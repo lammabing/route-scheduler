@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +11,9 @@ import { Info, Plus, Edit2, Trash2, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { TimeInfo } from "@/types";
+import { api } from "@/lib/local-api";
 
 const timeInfoSchema = z.object({
   symbol: z.string().min(1, "Symbol is required").max(5, "Symbol must be 5 characters or less"),
@@ -42,14 +41,9 @@ const AdminTimeInfo = () => {
   const fetchTimeInfos = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('time_infos')
-        .select('*')
-        .order('symbol');
+      const data = await api.getTimeInfos();
 
-      if (error) throw error;
-
-      const formattedTimeInfos: TimeInfo[] = data.map(info => ({
+      const formattedTimeInfos: TimeInfo[] = data.map((info: any) => ({
         id: info.id,
         symbol: info.symbol,
         description: info.description
@@ -75,26 +69,17 @@ const AdminTimeInfo = () => {
 
       if (editingTimeInfo) {
         // Update existing time info
-        const { error } = await supabase
-          .from('time_infos')
-          .update({
-            symbol: data.symbol,
-            description: data.description,
-          })
-          .eq('id', editingTimeInfo.id);
-
-        if (error) throw error;
+        await api.updateTimeInfo(editingTimeInfo.id, {
+          symbol: data.symbol,
+          description: data.description,
+        });
         toast.success('Time info updated successfully');
       } else {
         // Create new time info
-        const { error } = await supabase
-          .from('time_infos')
-          .insert({
-            symbol: data.symbol,
-            description: data.description,
-          });
-
-        if (error) throw error;
+        await api.createTimeInfo({
+          symbol: data.symbol,
+          description: data.description,
+        });
         toast.success('Time info created successfully');
       }
 
@@ -116,13 +101,7 @@ const AdminTimeInfo = () => {
   // Handle delete
   const handleDelete = async (timeInfoId: string) => {
     try {
-      const { error } = await supabase
-        .from('time_infos')
-        .delete()
-        .eq('id', timeInfoId);
-
-      if (error) throw error;
-
+      await api.deleteTimeInfo(timeInfoId);
       toast.success('Time info deleted successfully');
       await fetchTimeInfos();
     } catch (error) {

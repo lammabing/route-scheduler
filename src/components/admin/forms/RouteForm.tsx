@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -29,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
+import { api } from "@/lib/local-api";
 
 interface RouteFormProps {
   open: boolean;
@@ -54,7 +53,7 @@ const RouteForm = ({ open, onOpenChange, route, onSuccess }: RouteFormProps) => 
   
   const form = useForm<RouteFormValues>({
     resolver: zodResolver(routeSchema),
-    defaultValues: route || {
+    defaultValues: {
       name: "",
       origin: "",
       destination: "",
@@ -64,39 +63,53 @@ const RouteForm = ({ open, onOpenChange, route, onSuccess }: RouteFormProps) => 
     },
   });
 
+  // Reset form when route changes (for edit mode)
+  useEffect(() => {
+    if (route) {
+      form.reset({
+        name: route.name,
+        origin: route.origin,
+        destination: route.destination,
+        transportType: route.transportType,
+        description: route.description || "",
+        featuredImage: route.featuredImage || "",
+      });
+    } else {
+      form.reset({
+        name: "",
+        origin: "",
+        destination: "",
+        transportType: "bus",
+        description: "",
+        featuredImage: "",
+      });
+    }
+  }, [route, form]);
+
   const onSubmit = async (values: RouteFormValues) => {
     setIsLoading(true);
     try {
       if (route) {
         // Update existing route
-        const { error } = await supabase
-          .from('routes')
-          .update({
-            name: values.name,
-            origin: values.origin,
-            destination: values.destination,
-            transport_type: values.transportType,
-            description: values.description || null,
-            featured_image: values.featuredImage || null,
-          })
-          .eq('id', route.id);
-          
-        if (error) throw error;
+        await api.updateRoute(route.id, {
+          name: values.name,
+          origin: values.origin,
+          destination: values.destination,
+          transport_type: values.transportType,
+          description: values.description || null,
+          featured_image: values.featuredImage || null,
+        });
         toast.success("Route updated successfully");
       } else {
         // Create new route
-        const { error } = await supabase
-          .from('routes')
-          .insert({
-            name: values.name,
-            origin: values.origin,
-            destination: values.destination,
-            transport_type: values.transportType,
-            description: values.description || null,
-            featured_image: values.featuredImage || null,
-          });
-          
-        if (error) throw error;
+        await api.createRoute({
+          name: values.name,
+          origin: values.origin,
+          destination: values.destination,
+          transport_type: values.transportType,
+          description: values.description || null,
+          featured_image: values.featuredImage || null,
+        });
         toast.success("Route created successfully");
       }
       
