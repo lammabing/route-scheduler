@@ -236,4 +236,58 @@ export const api = {
     if (!response.ok) throw new Error('Failed to delete departure time');
     return response.json();
   },
+  
+  // Departure time infos
+  getDepartureTimeInfos: async (departureTimeId: string) => {
+    const response = await fetch(`${API_BASE_URL}/departure-time-infos/${departureTimeId}`);
+    if (!response.ok) throw new Error('Failed to fetch departure time infos');
+    return response.json();
+  },
+  
+  createDepartureTimeInfo: async (departureTimeInfoData: any) => {
+    const response = await fetch(`${API_BASE_URL}/departure-time-infos`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(departureTimeInfoData),
+    });
+    if (!response.ok) throw new Error('Failed to create departure time info');
+    return response.json();
+  },
+  
+  deleteDepartureTimeInfo: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/departure-time-infos/${id}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete departure time info');
+    return response.json();
+  },
+  
+  // Departure time fares
+  getDepartureTimeFares: async (departureTimeId: string) => {
+    const response = await fetch(`${API_BASE_URL}/departure-time-fares/${departureTimeId}`);
+    if (!response.ok) throw new Error('Failed to fetch departure time fares');
+    return response.json();
+  },
+  
+  createDepartureTimeFare: async (departureTimeFareData: any) => {
+    const response = await fetch(`${API_BASE_URL}/departure-time-fares`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(departureTimeFareData),
+    });
+    if (!response.ok) throw new Error('Failed to create departure time fare');
+    return response.json();
+  },
+  
+  deleteDepartureTimeFare: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/departure-time-fares/${id}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete departure time fare');
+    return response.json();
+  },
 };

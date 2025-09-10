@@ -393,6 +393,90 @@ app.delete('/api/fares/:id', async (req, res) => {
   }
 });
 
+// Departure time infos
+app.get('/api/departure-time-infos/:departureTimeId', async (req, res) => {
+  try {
+    const { departureTimeId } = req.params;
+    const result = await pool.query('SELECT * FROM departure_time_infos WHERE departure_time_id = $1', [departureTimeId]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching departure time infos:', error);
+    res.status(500).json({ error: 'Failed to fetch departure time infos' });
+  }
+});
+
+app.post('/api/departure-time-infos', async (req, res) => {
+  try {
+    const { departure_time_id, time_info_id } = req.body;
+    const result = await pool.query(
+      'INSERT INTO departure_time_infos (departure_time_id, time_info_id) VALUES ($1, $2) RETURNING *',
+      [departure_time_id, time_info_id]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating departure time info:', error);
+    res.status(500).json({ error: 'Failed to create departure time info' });
+  }
+});
+
+app.delete('/api/departure-time-infos/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('DELETE FROM departure_time_infos WHERE id = $1 RETURNING *', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Departure time info not found' });
+    }
+    
+    res.json({ message: 'Departure time info deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting departure time info:', error);
+    res.status(500).json({ error: 'Failed to delete departure time info' });
+  }
+});
+
+// Departure time fares
+app.get('/api/departure-time-fares/:departureTimeId', async (req, res) => {
+  try {
+    const { departureTimeId } = req.params;
+    const result = await pool.query('SELECT * FROM departure_time_fares WHERE departure_time_id = $1', [departureTimeId]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching departure time fares:', error);
+    res.status(500).json({ error: 'Failed to fetch departure time fares' });
+  }
+});
+
+app.post('/api/departure-time-fares', async (req, res) => {
+  try {
+    const { departure_time_id, fare_id } = req.body;
+    const result = await pool.query(
+      'INSERT INTO departure_time_fares (departure_time_id, fare_id) VALUES ($1, $2) RETURNING *',
+      [departure_time_id, fare_id]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating departure time fare:', error);
+    res.status(500).json({ error: 'Failed to create departure time fare' });
+  }
+});
+
+app.delete('/api/departure-time-fares/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('DELETE FROM departure_time_fares WHERE id = $1 RETURNING *', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Departure time fare not found' });
+    }
+    
+    res.json({ message: 'Departure time fare deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting departure time fare:', error);
+    res.status(500).json({ error: 'Failed to delete departure time fare' });
+  }
+});
+
 // User roles
 app.get('/api/user-roles/:userId', async (req, res) => {
   try {
